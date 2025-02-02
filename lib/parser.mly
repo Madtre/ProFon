@@ -11,10 +11,13 @@ open Expr   (* rappel: dans expr.ml:
 /* PARTIE 2, on liste les lexèmes (lien avec le fichier lexer.mll) ******* */                                   
 %token <int> INT       /* le lexème INT a un attribut entier */
 %token <bool> BOOL
+%token <string> VAR
 %token PLUS TIMES MINUS
 %token AND OR NOT
 %token LPAREN RPAREN
 %token IF THEN ELSE
+%token PRINT
+%token LET IN EQUAL
 %token EOL             /* retour à la ligne */
 
 
@@ -26,6 +29,9 @@ open Expr   (* rappel: dans expr.ml:
 %left TIMES NOT
 
 %left ELSE
+
+
+%left PRINT
 /* PARTIE 4, le point d'entrée ******************************************* */
 		    
 %start main             /* "start" signale le point d'entrée du parser: */
@@ -48,6 +54,7 @@ expression:
          du code Caml dans les parties entre {..} ; supprimez-les pour
          montrer que vous avez lu ceci, et mettez juste "Cst i" */
    | b=BOOL                            { Bool b }
+   | v=VAR                               { Var v }
 
    | LPAREN e=expression RPAREN            { e } 
    | e1=expression PLUS e2=expression      { Add(e1,e2) }
@@ -58,7 +65,9 @@ expression:
    | NOT e=expression                     { Not(e) }
    
    | IF e1=expression THEN e2=expression ELSE e3=expression { IfThenElse(e1,e2,e3) }
+   | LET v=expression EQUAL e1 = expression IN e2=expression { LetIn(v, e1, e2) }
 
    | MINUS e=expression                    { Min(Cst 0, e) } (* le moins unaire *)  
+   | PRINT e=expression                    { PrInt e } 
 
 

@@ -2,18 +2,21 @@ open Lib
 open Expr
 
 
-(* le traitement d'une expression en entrée *)   
+let testmode = true
+
+(* le traitement d'une expression en entrï¿½e *)   
 let execute e =
   begin
-    affiche_expr e; (* on affiche e *)
-    print_newline();
-    let v =  eval e in (* on évalue e *)
+    if testmode then (print_string "Arbre de l'expr : ";
+    affiche_expr e; (* on n'affiche plus e *)
+    print_newline());
+    let v =  eval e in (* on ï¿½value e *)
     affiche_valeur v;
     print_newline();
   end
 
-(* "incantations" qu'il n'est pas nécessaire de comprendre dans un premier
-   temps : on récupère l'entrée, dans un fichier ou sur le clavier *)
+(* "incantations" qu'il n'est pas nï¿½cessaire de comprendre dans un premier
+   temps : on rï¿½cupï¿½re l'entrï¿½e, dans un fichier ou sur le clavier *)
 let nom_fichier = ref ""
 
 let recupere_entree () =
@@ -29,7 +32,7 @@ let recupere_entree () =
     let lexbuf = Lexing.from_channel where_from in
     let parse () = Parser.main Lexer.token lexbuf in
     parse () 
-  with e -> (Printf.printf "problème de saisie\n"; raise e)
+  with e -> (Printf.printf "problï¿½me de saisie\n"; raise e)
 
 
 

@@ -8,7 +8,9 @@
 let chiffre = ['0'-'9']
 let nombre = chiffre+
 let boolean = "true" | "false"
+let var = ['a'-'z']+['a'-'z' 'A'-'Z']*
 
+(* définition des tokens *)
                
 rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | [' ' '\t']     { token lexbuf }    (* on saute les blancs et les tabulations *)
@@ -25,5 +27,10 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | "if"            { IF }
   | "then"          { THEN }
   | "else"          { ELSE }
+  | "prInt"         { PRINT }
+  | "let"           { LET }
+  | "in"            { IN }
+  | "="         { EQUAL }
   | nombre as s { INT (int_of_string s) }
-  | boolean as s { BOOL (bool_of_string s) }
+  | boolean as b { BOOL (bool_of_string b) }
+  | var as v { VAR v }

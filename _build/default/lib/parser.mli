@@ -2,16 +2,21 @@
 (* The type of tokens. *)
 
 type token = 
+  | VAR of (string)
   | TIMES
   | THEN
   | RPAREN
+  | PRINT
   | PLUS
   | OR
   | NOT
   | MINUS
   | LPAREN
+  | LET
   | INT of (int)
+  | IN
   | IF
+  | EQUAL
   | EOL
   | ELSE
   | BOOL of (bool)
