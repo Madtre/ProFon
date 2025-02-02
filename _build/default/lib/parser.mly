@@ -18,10 +18,14 @@ open Expr   (* rappel: dans expr.ml:
 %token IF THEN ELSE
 %token PRINT
 %token LET IN EQUAL
+%token FUN RIGHTARROW
 %token EOL             /* retour à la ligne */
 
 
-/* PARTIE 3, on donne les associativités ********************************* */                            
+/* PARTIE 3, on donne les associativités ********************************* */  
+%left RIGHTARROW
+
+
 %left PLUS MINUS AND OR   /* associativité gauche: a+b+c, c'est (a+b)+c */
 
    /* priorité plus grande de TIMES par rapport à
@@ -30,7 +34,8 @@ open Expr   (* rappel: dans expr.ml:
 
 %left ELSE
 
-
+%left VAR
+%left IN
 %left PRINT
 /* PARTIE 4, le point d'entrée ******************************************* */
 		    
@@ -66,8 +71,10 @@ expression:
    
    | IF e1=expression THEN e2=expression ELSE e3=expression { IfThenElse(e1,e2,e3) }
    | LET v=expression EQUAL e1 = expression IN e2=expression { LetIn(v, e1, e2) }
+   | FUN v=expression RIGHTARROW e=expression     { Fun(v, e) }
 
    | MINUS e=expression                    { Min(Cst 0, e) } (* le moins unaire *)  
    | PRINT e=expression                    { PrInt e } 
+   | v=VAR e2=expression            { FunCall(Var v, e2) }
 
 

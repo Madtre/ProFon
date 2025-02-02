@@ -16,6 +16,8 @@ type expr =
   | IfThenElse of expr*expr*expr
   | PrInt of expr
   | LetIn of expr*expr*expr
+  | Fun of expr*expr
+  | FunCall of expr*expr
 
 
 (* fonction d'affichage *)
@@ -41,15 +43,21 @@ let rec affiche_expr e =
   | IfThenElse(e1,e2,e3) -> aff_aux "IfThenElse(" [e1;e2;e3]
   | PrInt e -> aff_aux "PrInt(" [e]
   | LetIn(e1,e2,e3) -> aff_aux "LetIn(" [e1;e2;e3]
+  | Fun(e1,e2) -> aff_aux "Fun(" [e1;e2]
+  | FunCall(e1,e2) -> aff_aux "FunCall(" [e1;e2]
   
 (* les valeurs ; pour l'instant �a ne peut �tre que des entiers *)
-type valeur = 
+type env = (string, valeur) Hashtbl.t
+and
+valeur = 
 |VI of int
 |VB of bool
+|VFun of env * expr * expr
 
 (*Fonctions permettant de cast des valeurs à un type utilisable*)
 exception NotAnInt of valeur
 exception NotABool of valeur
+exception NotAFunction of valeur
 exception CastError of string
 
 let cast_int (v : valeur) : int = match v with
@@ -60,9 +68,13 @@ let cast_bool (v : valeur) : bool = match v with
   |VB b -> b
   |_ -> raise (NotABool v)
 
+let cast_fun (v : valeur) : (env * expr * expr) = match v with
+  |VFun (e1, e2, e3) -> (e1, e2, e3)
+  |_ -> raise (NotAFunction v)
 let cast_string (v : valeur) : string = match v with
   |VI k -> "- : int = " ^ string_of_int k
   |VB b -> "- : bool = " ^ string_of_bool b
+  |VFun _ -> "- : function"
 
 (* fin des valeurs *)
 
@@ -74,13 +86,19 @@ let cast_string (v : valeur) : string = match v with
 
 let affiche_valeur v = print_string (cast_string v)
 
+let castError (e : expr) (v : string) (wrongtype : string) : valeur = 
+  print_newline() ; print_string "Error in"; print_newline(); affiche_expr e ; print_newline();
+  raise (CastError (v ^ " isn't a " ^ wrongtype))
+
 exception NotAVariable of string
 exception UnboundVariable of string
+(*Gère l'erreur où on attendrait un nom de variable mais où une autre expression est donnée*)
 
 (* �valuation d'une expression en une valeur *)
 let eval (e : expr) : valeur = 
-  let ctx : (string, valeur) Hashtbl.t = Hashtbl.create 10 in
-  let rec eval_aux (e : expr) : valeur = try begin
+  (*ctx représente le contexte général d'éxécution, en opposition au contexte de chaque fonction*)
+  let basectx : env = Hashtbl.create 10 in
+  let rec eval_aux (e : expr) (ctx : env): valeur = try begin
     match e with
     | Cst k -> VI k
     | Bool b -> VB b
@@ -90,28 +108,42 @@ let eval (e : expr) : valeur =
       | Not_found -> 
         print_newline() ; raise (UnboundVariable (va ^ " is unbound"))
       end
+    | Add(e1,e2) -> VI (cast_int (eval_aux e1 ctx) + cast_int (eval_aux e2 ctx))
+    | Mul(e1,e2) -> VI (cast_int (eval_aux e1 ctx) * cast_int (eval_aux e2 ctx))
+    | Min(e1,e2) -> VI (cast_int (eval_aux e1 ctx) - cast_int (eval_aux e2 ctx))
+    | And(e1,e2) -> VB (cast_bool (eval_aux e1 ctx) && cast_bool (eval_aux e2 ctx))
+    | Or(e1,e2) -> VB (cast_bool (eval_aux e1 ctx) || cast_bool (eval_aux e2 ctx))
+    | Not e -> VB (not (cast_bool (eval_aux e ctx)))
+    | IfThenElse(e1,e2,e3) -> if cast_bool (eval_aux e1 ctx) then eval_aux e2 ctx else eval_aux e3 ctx
+    | PrInt e -> let i = cast_int(eval_aux e ctx) in VI(prInt i)
+    | LetIn(e1,e2,e3) ->
+      if e1 = Var "_" 
+        then let _ = eval_aux e2 ctx in eval_aux e3 ctx
+        else let va = getVarName e1 ctx in 
+          Hashtbl.add ctx va (eval_aux e2 ctx); let v = eval_aux e3 ctx in Hashtbl.remove ctx va; v
 
-    | Add(e1,e2) -> VI (cast_int (eval_aux e1) + cast_int (eval_aux e2))
-    | Mul(e1,e2) -> VI (cast_int (eval_aux e1) * cast_int (eval_aux e2))
-    | Min(e1,e2) -> VI (cast_int (eval_aux e1) - cast_int (eval_aux e2))
-    | And(e1,e2) -> VB (cast_bool (eval_aux e1) && cast_bool (eval_aux e2))
-    | Or(e1,e2) -> VB (cast_bool (eval_aux e1) || cast_bool (eval_aux e2))
-    | Not e -> VB (not (cast_bool (eval_aux e)))
-    | IfThenElse(e1,e2,e3) -> if cast_bool (eval_aux e1) then eval_aux e2 else eval_aux e3
-    | PrInt e -> let i = cast_int(eval_aux e) in VI(prInt i)
-    | LetIn(e1,e2,e3) -> match e1 with
-      | Var v -> Hashtbl.add ctx v (eval_aux e2); eval_aux e3
-      | _ ->
-        print_newline() ; print_string "Error : NotAVariable in " ; print_newline() ; affiche_expr e ; print_newline();
-        raise (NotAVariable (cast_string(eval_aux e1) ^ " isn't a variable"))
+    | Fun(e1,e2) -> 
+      let va = getVarName e1 ctx in
+      VFun(Hashtbl.copy ctx, Var va, e2)
+
+    | FunCall(func, value) -> (
+      let (fctx, fvar, fexpr) = cast_fun (eval_aux func ctx) in
+      let va = getVarName fvar ctx in
+      Hashtbl.add fctx va (eval_aux value ctx); 
+      let v = eval_aux fexpr fctx 
+      in Hashtbl.remove fctx va; v)
   end
-    with
-    |NotAnInt v -> 
-      print_newline() ; print_string "Error: NotAnInt in"; print_newline(); affiche_expr e ; print_newline();
-      raise (CastError ((cast_string v) ^ " isn't an int"))
-    |NotABool v ->
-      print_newline() ; print_string "Error: NotABool in"; print_newline(); affiche_expr e ; print_newline();
-      raise (CastError ((cast_string v) ^ " isn't a bool"))
-    in eval_aux e
+    with 
+    |NotAnInt v -> castError e (cast_string v) "int"
+    |NotABool v -> castError e (cast_string v) "bool"
+    |NotAFunction v -> castError e (cast_string v) "function"
+    |NotAVariable v -> castError e v "variable"
+  and getVarName (variable : expr) (ctx : env) : string = match variable with
+  |Var v -> v
+  |_ -> raise (NotAVariable (cast_string(eval_aux variable ctx) ^ " isn't a variable"))
+  
+  
+  in eval_aux e basectx
+
 
   

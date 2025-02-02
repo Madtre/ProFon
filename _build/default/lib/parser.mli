@@ -6,6 +6,7 @@ type token =
   | TIMES
   | THEN
   | RPAREN
+  | RIGHTARROW
   | PRINT
   | PLUS
   | OR
@@ -16,6 +17,7 @@ type token =
   | INT of (int)
   | IN
   | IF
+  | FUN
   | EQUAL
   | EOL
   | ELSE

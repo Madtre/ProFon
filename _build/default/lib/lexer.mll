@@ -8,7 +8,7 @@
 let chiffre = ['0'-'9']
 let nombre = chiffre+
 let boolean = "true" | "false"
-let var = ['a'-'z']+['a'-'z' 'A'-'Z']*
+let var = ['a'-'z']+['a'-'z' 'A'-'Z']*|'_'
 
 (* définition des tokens *)
                
@@ -31,6 +31,8 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | "let"           { LET }
   | "in"            { IN }
   | "="         { EQUAL }
+  | "fun"           { FUN }
+  | "->"            { RIGHTARROW }
   | nombre as s { INT (int_of_string s) }
   | boolean as b { BOOL (bool_of_string b) }
   | var as v { VAR v }
