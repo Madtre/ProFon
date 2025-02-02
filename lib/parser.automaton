@@ -1,0 +1,205 @@
+State 0:
+## Known stack suffix:
+##
+## LR(1) items:
+main' -> . main [ # ]
+## Transitions:
+-- On MINUS shift to state 1
+-- On LPAREN shift to state 2
+-- On INT shift to state 3
+-- On main shift to state 13
+-- On expression shift to state 14
+## Reductions:
+
+State 1:
+## Known stack suffix:
+## MINUS
+## LR(1) items:
+expression -> MINUS . expression [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On MINUS shift to state 1
+-- On LPAREN shift to state 2
+-- On INT shift to state 3
+-- On expression shift to state 12
+## Reductions:
+
+State 2:
+## Known stack suffix:
+## LPAREN
+## LR(1) items:
+expression -> LPAREN . expression RPAREN [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On MINUS shift to state 1
+-- On LPAREN shift to state 2
+-- On INT shift to state 3
+-- On expression shift to state 4
+## Reductions:
+
+State 3:
+## Known stack suffix:
+## INT
+## LR(1) items:
+expression -> INT . [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+## Reductions:
+-- On TIMES RPAREN PLUS MINUS EOL
+--   reduce production expression -> INT
+
+State 4:
+## Known stack suffix:
+## LPAREN expression
+## LR(1) items:
+expression -> LPAREN expression . RPAREN [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . PLUS expression [ TIMES RPAREN PLUS MINUS ]
+expression -> expression . TIMES expression [ TIMES RPAREN PLUS MINUS ]
+expression -> expression . MINUS expression [ TIMES RPAREN PLUS MINUS ]
+## Transitions:
+-- On TIMES shift to state 5
+-- On RPAREN shift to state 11
+-- On PLUS shift to state 7
+-- On MINUS shift to state 9
+## Reductions:
+
+State 5:
+## Known stack suffix:
+## expression TIMES
+## LR(1) items:
+expression -> expression TIMES . expression [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On MINUS shift to state 1
+-- On LPAREN shift to state 2
+-- On INT shift to state 3
+-- On expression shift to state 6
+## Reductions:
+
+State 6:
+## Known stack suffix:
+## expression TIMES expression
+## LR(1) items:
+expression -> expression . PLUS expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . TIMES expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression TIMES expression . [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . MINUS expression [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On TIMES shift to state 5
+-- On PLUS shift to state 7
+-- On MINUS shift to state 9
+## Reductions:
+-- On TIMES RPAREN PLUS MINUS EOL
+--   reduce production expression -> expression TIMES expression
+** Conflict on TIMES PLUS MINUS
+
+State 7:
+## Known stack suffix:
+## expression PLUS
+## LR(1) items:
+expression -> expression PLUS . expression [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On MINUS shift to state 1
+-- On LPAREN shift to state 2
+-- On INT shift to state 3
+-- On expression shift to state 8
+## Reductions:
+
+State 8:
+## Known stack suffix:
+## expression PLUS expression
+## LR(1) items:
+expression -> expression . PLUS expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression PLUS expression . [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . TIMES expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . MINUS expression [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On TIMES shift to state 5
+## Reductions:
+-- On TIMES RPAREN PLUS MINUS EOL
+--   reduce production expression -> expression PLUS expression
+** Conflict on TIMES
+
+State 9:
+## Known stack suffix:
+## expression MINUS
+## LR(1) items:
+expression -> expression MINUS . expression [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On MINUS shift to state 1
+-- On LPAREN shift to state 2
+-- On INT shift to state 3
+-- On expression shift to state 10
+## Reductions:
+
+State 10:
+## Known stack suffix:
+## expression MINUS expression
+## LR(1) items:
+expression -> expression . PLUS expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . TIMES expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . MINUS expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression MINUS expression . [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On TIMES shift to state 5
+## Reductions:
+-- On TIMES RPAREN PLUS MINUS EOL
+--   reduce production expression -> expression MINUS expression
+** Conflict on TIMES
+
+State 11:
+## Known stack suffix:
+## LPAREN expression RPAREN
+## LR(1) items:
+expression -> LPAREN expression RPAREN . [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+## Reductions:
+-- On TIMES RPAREN PLUS MINUS EOL
+--   reduce production expression -> LPAREN expression RPAREN
+
+State 12:
+## Known stack suffix:
+## MINUS expression
+## LR(1) items:
+expression -> expression . PLUS expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . TIMES expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> expression . MINUS expression [ TIMES RPAREN PLUS MINUS EOL ]
+expression -> MINUS expression . [ TIMES RPAREN PLUS MINUS EOL ]
+## Transitions:
+-- On TIMES shift to state 5
+## Reductions:
+-- On TIMES RPAREN PLUS MINUS EOL
+--   reduce production expression -> MINUS expression
+** Conflict on TIMES
+
+State 13:
+## Known stack suffix:
+## main
+## LR(1) items:
+main' -> main . [ # ]
+## Transitions:
+## Reductions:
+-- On #
+--   accept main
+
+State 14:
+## Known stack suffix:
+## expression
+## LR(1) items:
+expression -> expression . PLUS expression [ TIMES PLUS MINUS EOL ]
+expression -> expression . TIMES expression [ TIMES PLUS MINUS EOL ]
+expression -> expression . MINUS expression [ TIMES PLUS MINUS EOL ]
+main -> expression . EOL [ # ]
+## Transitions:
+-- On TIMES shift to state 5
+-- On PLUS shift to state 7
+-- On MINUS shift to state 9
+-- On EOL shift to state 15
+## Reductions:
+
+State 15:
+## Known stack suffix:
+## expression EOL
+## LR(1) items:
+main -> expression EOL . [ # ]
+## Transitions:
+## Reductions:
+-- On #
+--   reduce production main -> expression EOL
+
