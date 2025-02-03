@@ -4,6 +4,7 @@ type token =
   | THEN
   | RPAREN
   | RIGHTARROW
+  | REC
   | PRINT
   | PLUS
   | OR
@@ -20,7 +21,12 @@ type token =
   | ELSE
   | BOOL of bool
   | AND
+val aux : Expr.expr -> Expr.expr -> Expr.expr
 val menhir_begin_marker : int
+val xv_value : Expr.expr
+val xv_sexpr : Expr.expr
+val xv_multivariables : Expr.expr
 val xv_main : Expr.expr
 val xv_expression : Expr.expr
+val xv_applic : Expr.expr
 val menhir_end_marker : int

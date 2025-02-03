@@ -33,6 +33,7 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | "="         { EQUAL }
   | "fun"           { FUN }
   | "->"            { RIGHTARROW }
+  | "rec"           { REC }
   | nombre as s { INT (int_of_string s) }
   | boolean as b { BOOL (bool_of_string b) }
   | var as v { VAR v }

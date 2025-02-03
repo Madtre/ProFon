@@ -7,6 +7,7 @@ type token =
   | THEN
   | RPAREN
   | RIGHTARROW
+  | REC
   | PRINT
   | PLUS
   | OR

@@ -16,24 +16,28 @@ type expr =
   | IfThenElse of expr*expr*expr
   | PrInt of expr
   | LetIn of expr*expr*expr
+  | LetRecIn of expr*expr*expr
   | Fun of expr*expr
+  | RecFun of string*expr*expr
   | FunCall of expr*expr
+
 
 
 (* fonction d'affichage *)
 (* NB : dans votre "vraie fouine", il faudra afficher
    du code Caml, et pas des arbres avec des Add, Mul, etc. *)
-let rec affiche_expr e =
-  (*généralisation de l'affichage à des n uplets*)
-  let rec aff_aux s l =
-    print_string s; match l with
-    |[]->print_string ")"
-    |p::q-> (if s = "" then print_string ",") ; affiche_expr p; aff_aux "" q 
+
+let rec string_of_expr e : string =
+  (*permet l'affichage de n uplets*)
+  let rec aff_aux s l = s ^ (
+    match l with
+    |[]->")"
+    |p::q-> (if s = "" then "," else "") ^ (string_of_expr p) ^ (aff_aux "" q))
   in
   match e with
-  | Cst k -> print_int k
-  | Bool b -> print_string (if b then "true" else "false")
-  | Var v -> print_string v
+  | Cst k -> string_of_int k
+  | Bool b -> if b then "true" else "false"
+  | Var v -> v
   | Add(e1,e2) -> aff_aux "Add(" [e1;e2]
   | Mul(e1,e2) -> aff_aux "Mul(" [e1;e2]
   | Min(e1,e2) -> aff_aux "Min(" [e1;e2]
@@ -43,13 +47,19 @@ let rec affiche_expr e =
   | IfThenElse(e1,e2,e3) -> aff_aux "IfThenElse(" [e1;e2;e3]
   | PrInt e -> aff_aux "PrInt(" [e]
   | LetIn(e1,e2,e3) -> aff_aux "LetIn(" [e1;e2;e3]
+  | LetRecIn(e1,e2,e3) -> aff_aux "LetRecIn(" [e1;e2;e3]
   | Fun(e1,e2) -> aff_aux "Fun(" [e1;e2]
+  | RecFun(v,e1,e2) -> "RecFun(" ^ v ^ "," ^ (string_of_expr e1) ^ "," ^ (string_of_expr e2) ^ ")"
   | FunCall(e1,e2) -> aff_aux "FunCall(" [e1;e2]
-  
+ 
+let affiche_expr e = print_string (string_of_expr e)
+
 (* les valeurs ; pour l'instant �a ne peut �tre que des entiers *)
-type env = (string, valeur) Hashtbl.t
-and
-valeur = 
+type env = (string, expr) Hashtbl.t
+
+let affiche_env (ctx : env) : unit = Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n" x (string_of_expr y)) ctx;;
+
+type valeur = 
 |VI of int
 |VB of bool
 |VFun of env * expr * expr
@@ -70,11 +80,22 @@ let cast_bool (v : valeur) : bool = match v with
 
 let cast_fun (v : valeur) : (env * expr * expr) = match v with
   |VFun (e1, e2, e3) -> (e1, e2, e3)
-  |_ -> raise (NotAFunction v)
+|_ -> raise (NotAFunction v)
+  
 let cast_string (v : valeur) : string = match v with
   |VI k -> "- : int = " ^ string_of_int k
   |VB b -> "- : bool = " ^ string_of_bool b
-  |VFun _ -> "- : function"
+  |VFun(_, v, def) -> "- : fun " ^ (string_of_expr v) ^ " -> " ^ (string_of_expr def) 
+
+let cast_expr (v : valeur) : expr = match v with
+  |VI k -> Cst k
+  |VB b -> Bool b
+  |VFun(_, v, def) -> Fun(v, def)
+
+(* fin des valeurs *)
+
+(*fin des casts*)
+(* s�mantique op�rationnelle � grands pas *)
 
 (* fin des valeurs *)
 
@@ -98,12 +119,15 @@ exception UnboundVariable of string
 let eval (e : expr) : valeur = 
   (*ctx représente le contexte général d'éxécution, en opposition au contexte de chaque fonction*)
   let basectx : env = Hashtbl.create 10 in
-  let rec eval_aux (e : expr) (ctx : env): valeur = try begin
+  let count = ref 0 in
+  let rec eval_aux (e : expr) (ctx : env): valeur = 
+     print_string "---" ; print_newline() ; affiche_expr e ; print_newline() ; affiche_env ctx ; count := !count + 1 ; if !count > 40 then failwith "test" ; 
+     try begin
     match e with
     | Cst k -> VI k
     | Bool b -> VB b
     | Var va -> begin
-      try Hashtbl.find ctx va 
+      try let ve = Hashtbl.find ctx va in eval_aux ve ctx
       with
       | Not_found -> 
         print_newline() ; raise (UnboundVariable (va ^ " is unbound"))
@@ -120,16 +144,30 @@ let eval (e : expr) : valeur =
       if e1 = Var "_" 
         then let _ = eval_aux e2 ctx in eval_aux e3 ctx
         else let va = getVarName e1 ctx in 
-          Hashtbl.add ctx va (eval_aux e2 ctx); let v = eval_aux e3 ctx in Hashtbl.remove ctx va; v
+          Hashtbl.add ctx va e2 ; let v = eval_aux e3 ctx in Hashtbl.remove ctx va; v
+    | LetRecIn(e1,e2,e3) ->
+      if e1 = Var "_" 
+        then failwith "Error : Only variables are allowed as left-hand side of 'let rec'"
+        else let va = getVarName e1 ctx in 
+          (match e2 with
+          | Fun(v, e) -> let f = RecFun(va, v, e) in
+            Hashtbl.add ctx va f; let v = eval_aux e3 ctx in Hashtbl.remove ctx va; v
+          | _ -> failwith "Error : Only functions are allowed as right-hand side of 'let rec'")
+(*let rec va e2 = e3 in e3*) 
+
+
 
     | Fun(e1,e2) -> 
       let va = getVarName e1 ctx in
       VFun(Hashtbl.copy ctx, Var va, e2)
 
+    | RecFun(name,e1,e2) -> let fctx = Hashtbl.copy ctx in Hashtbl.add fctx name (RecFun(name, e1, e2)) ; VFun(fctx, e1, e2)
+
     | FunCall(func, value) -> (
       let (fctx, fvar, fexpr) = cast_fun (eval_aux func ctx) in
       let va = getVarName fvar ctx in
-      Hashtbl.add fctx va (eval_aux value ctx); 
+      print_string "va : "; print_string (va^" -> " ^ string_of_expr value); print_newline();
+      Hashtbl.add fctx va (cast_expr (eval_aux value ctx)); 
       let v = eval_aux fexpr fctx 
       in Hashtbl.remove fctx va; v)
   end
@@ -140,7 +178,7 @@ let eval (e : expr) : valeur =
     |NotAVariable v -> castError e v "variable"
   and getVarName (variable : expr) (ctx : env) : string = match variable with
   |Var v -> v
-  |_ -> raise (NotAVariable (cast_string(eval_aux variable ctx) ^ " isn't a variable"))
+  |_ -> raise (NotAVariable (cast_string(eval_aux variable ctx)))
   
   
   in eval_aux e basectx

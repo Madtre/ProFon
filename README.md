@@ -38,16 +38,33 @@ Puis étendez fouine. Voici une succession d'étapes, traitez celles que vous po
 
 1. expressions arithmétiques. 
 Contemplez l’évaluation des expressions arithmétiques, améliorez les choses du point de vue de la factorisation du code si vous voyez un moyen de le faire ; sinon, laissez en l’état pour le moment.
-
+Implémentation des casts qui permettent de forcer le type d'une valeur avec message d'erreur si le type n'est pas bon
 2. opérateurs booléens et `if.. then.. else`
+Cast en booléen et priorité mise sur le else
+Généralisation de l'affichage
 3. fonction `prInt` (cf. les notes de cours)
+Implémenté et exploité ; mise en place d'une valeur booléenne permettant de cacher les affichages de test
 4. ajout des déclarations let.. in
-5. ajout des fonctions
-6. fonctions récursives
+Le contexte est géré par une Hashmap
+Implémentation du let _ = ..
 
+5. ajout des fonctions
+(on utilise initialement la règle pour notre grammaire var expr)
+Les fonctions sont vues commes un type de valeur qui tient sa propre hashmap. L'environnement de la fonction remplace le reste lorsqu'elle est executée
+Formes acceptées :
+fun x -> ..
+fun x -> fun y ->
+fun x y ->
+let f x y = ..
+6. fonctions récursives
+Les déclarations des rec lorsqu'elle sont evalués forcent l'ajout de la fonction à son propre contexte
+Autant de liberté pour créer ces fonctions qu'à la 5.
+Ajout de messages d'erreurs liés à des utilisations inadaptés d'un rec
 
 Pour chaque étape, référez-vous aux notes de cours (partie 1.2). 
 Écrivez à chaque fois de petits fichiers de tests dans le répertoire `test/`
+
+-> mettre des tests dans un fichier autre que basic.ml fait planter la lecture des fichiers définitivement. J'ai donc écrasé les tests à chaque fois
 
 ## Travailler sur fouine, modifier le code
 
