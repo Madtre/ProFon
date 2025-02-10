@@ -1,1 +1,1 @@
-if false then 4
+let k = ref 5 in k := 12 ; k 

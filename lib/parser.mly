@@ -32,9 +32,6 @@ let rec aux (m : expr) (e : expr) : expr = match m with
 
 /* PARTIE 3, on donne les associativités ********************************* */  
 
-%left SEPARATOR
-
-%left ASSIGN
 
 %left RIGHTARROW
 %left EQUAL
@@ -48,6 +45,10 @@ let rec aux (m : expr) (e : expr) : expr = match m with
 %left ELSE
 
 %left IN
+
+%left SEPARATOR
+
+%left ASSIGN
 
 %left PRINT
 /* PARTIE 4, le point d'entrée ******************************************* */

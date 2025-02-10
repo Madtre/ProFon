@@ -205,9 +205,17 @@ let eval (e : expr) : valeur =
     | Access(e) -> findVarValue (getVarName e globalctx) globalctx
 
     | Assign(var,nvalue) ->
-      let v = getVarName var globalctx in
+      let varname = getVarName var globalctx in
       let nv = eval_aux nvalue ctx in
-      Hashtbl.replace globalctx v nv;
+      Hashtbl.replace globalctx varname nv;
+      (try 
+        let v = findVarValue varname ctx in
+        match v with
+        |VRef _ -> Hashtbl.replace ctx varname (VRef nv)
+        |_ -> ()
+      with
+      |Not_found -> ());
+
       VUnit
 
     | Accumulation(e1, e2) ->
