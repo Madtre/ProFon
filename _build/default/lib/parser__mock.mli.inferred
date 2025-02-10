@@ -2,8 +2,10 @@ type token =
     VAR of string
   | TIMES
   | THEN
+  | SEPARATOR
   | RPAREN
   | RIGHTARROW
+  | REF
   | REC
   | PRINT
   | PLUS
@@ -20,6 +22,8 @@ type token =
   | EOL
   | ELSE
   | BOOL of bool
+  | BANG
+  | ASSIGN
   | AND
 val aux : Expr.expr -> Expr.expr -> Expr.expr
 val menhir_begin_marker : int

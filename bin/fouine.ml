@@ -1,7 +1,7 @@
 open Lib
 open Expr
 
-let debugtree = false
+let debugtree = true
 
 (* le traitement d'une expression en entr�e *)   
 let execute e =

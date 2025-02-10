@@ -25,10 +25,16 @@ let rec aux (m : expr) (e : expr) : expr = match m with
 %token LET IN EQUAL
 %token FUN RIGHTARROW
 %token REC
+%token REF BANG ASSIGN
+%token SEPARATOR
 %token EOL             /* retour à la ligne */
 
 
 /* PARTIE 3, on donne les associativités ********************************* */  
+
+%left SEPARATOR
+
+%left ASSIGN
 
 %left RIGHTARROW
 %left EQUAL
@@ -38,10 +44,11 @@ let rec aux (m : expr) (e : expr) : expr = match m with
       PLUS et MINUS, car est sur une ligne située plus bas */
 %left TIMES NOT
 
+%left THEN
 %left ELSE
 
-
 %left IN
+
 %left PRINT
 /* PARTIE 4, le point d'entrée ******************************************* */
 		    
@@ -66,6 +73,7 @@ value:
          du code Caml dans les parties entre {..} ; supprimez-les pour
          montrer que vous avez lu ceci, et mettez juste "Cst i" */
    | b=BOOL                            { Bool b }
+   | LPAREN RPAREN                     { Unit }
 
 
 applic:
@@ -86,6 +94,7 @@ expression:
    | v=value                               { v }  
 
    | LPAREN e=expression RPAREN            { e } 
+   | e1=expression SEPARATOR e2=expression { Accumulation(e1, e2) }
    | e1=expression PLUS e2=expression      { Add(e1,e2) }
    | e1=expression TIMES e2=expression     { Mul(e1,e2) }
    | e1=expression MINUS e2=expression     { Min(e1,e2) }
@@ -94,6 +103,7 @@ expression:
    | NOT e=expression                      { Not(e) }
    
    | IF e1=expression THEN e2=expression ELSE e3=expression  { IfThenElse(e1,e2,e3) }
+   | IF e1=expression THEN e2=expression                     { IfThenElse(e1,e2,Unit)}
    | LET v=VAR EQUAL e1 = expression IN e2=expression { LetIn(Var(v), e1, e2) }
    
    (*Je ne suis pas convaincu de l'efficacité de cette méthode, mais elle a le mérite de fonctionner*)
@@ -105,6 +115,9 @@ expression:
 
    | MINUS e=expression                    { Min(Cst 0, e) } (* le moins unaire *)  
    | PRINT e=expression                    { PrInt e } 
+   | REF v=value                           { Ref v }
+   | BANG v=VAR                            { Access(Var v) }
+   | v=VAR ASSIGN e=expression             { Assign(Var v, e) }
 
    | a=applic                              { a }
    (*| v=VAR e2=expression                   { FunCall(Var v, e2) }*)

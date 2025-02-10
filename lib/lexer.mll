@@ -34,6 +34,10 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | "fun"           { FUN }
   | "->"            { RIGHTARROW }
   | "rec"           { REC }
+  | "ref"           { REF }
+  | "!"          { BANG }
+  | ":="            { ASSIGN }
+  | ";"             { SEPARATOR }
   | nombre as s { INT (int_of_string s) }
   | boolean as b { BOOL (bool_of_string b) }
   | var as v { VAR v }

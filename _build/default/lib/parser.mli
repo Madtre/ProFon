@@ -5,8 +5,10 @@ type token =
   | VAR of (string)
   | TIMES
   | THEN
+  | SEPARATOR
   | RPAREN
   | RIGHTARROW
+  | REF
   | REC
   | PRINT
   | PLUS
@@ -23,6 +25,8 @@ type token =
   | EOL
   | ELSE
   | BOOL of (bool)
+  | BANG
+  | ASSIGN
   | AND
 
 (* This exception is raised by the monolithic API functions. *)
