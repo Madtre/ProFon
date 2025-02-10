@@ -2,7 +2,7 @@ open Lib
 open Expr
 
 
-let testmode = true
+let testmode = false
 
 (* le traitement d'une expression en entr�e *)   
 let execute e =

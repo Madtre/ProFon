@@ -49,7 +49,7 @@ let rec string_of_expr e : string =
   | LetIn(e1,e2,e3) -> aff_aux "LetIn(" [e1;e2;e3]
   | LetRecIn(e1,e2,e3) -> aff_aux "LetRecIn(" [e1;e2;e3]
   | Fun(e1,e2) -> aff_aux "Fun(" [e1;e2]
-  | RecFun(v,e1,e2) -> "RecFun(" ^ v ^ "," ^ (string_of_expr e1) ^ "," ^ (string_of_expr e2) ^ ")"
+  | RecFun(e1,e2,e3) -> aff_aux "RecFun(" [Var e1;e2;e3]
   | FunCall(e1,e2) -> aff_aux "FunCall(" [e1;e2]
  
 let affiche_expr e = print_string (string_of_expr e)
@@ -87,6 +87,7 @@ let cast_string (v : valeur) : string = match v with
   |VB b -> "- : bool = " ^ string_of_bool b
   |VFun(_, v, def) -> "- : fun " ^ (string_of_expr v) ^ " -> " ^ (string_of_expr def) 
 
+  (*Sert à stocker dans le contexte des expressions que l'on veut préévaluer, par exemple au lieu de stocker 1+1 on pourra stocker 2*)
 let cast_expr (v : valeur) : expr = match v with
   |VI k -> Cst k
   |VB b -> Bool b
@@ -118,11 +119,9 @@ exception UnboundVariable of string
 (* �valuation d'une expression en une valeur *)
 let eval (e : expr) : valeur = 
   (*ctx représente le contexte général d'éxécution, en opposition au contexte de chaque fonction*)
-  let basectx : env = Hashtbl.create 10 in
-  let count = ref 0 in
+  let basectx : env = Hashtbl.create 20 in
   let rec eval_aux (e : expr) (ctx : env): valeur = 
-     print_string "---" ; print_newline() ; affiche_expr e ; print_newline() ; affiche_env ctx ; count := !count + 1 ; if !count > 40 then failwith "test" ; 
-     try begin
+    try begin
     match e with
     | Cst k -> VI k
     | Bool b -> VB b
@@ -153,9 +152,6 @@ let eval (e : expr) : valeur =
           | Fun(v, e) -> let f = RecFun(va, v, e) in
             Hashtbl.add ctx va f; let v = eval_aux e3 ctx in Hashtbl.remove ctx va; v
           | _ -> failwith "Error : Only functions are allowed as right-hand side of 'let rec'")
-(*let rec va e2 = e3 in e3*) 
-
-
 
     | Fun(e1,e2) -> 
       let va = getVarName e1 ctx in
@@ -166,7 +162,6 @@ let eval (e : expr) : valeur =
     | FunCall(func, value) -> (
       let (fctx, fvar, fexpr) = cast_fun (eval_aux func ctx) in
       let va = getVarName fvar ctx in
-      print_string "va : "; print_string (va^" -> " ^ string_of_expr value); print_newline();
       Hashtbl.add fctx va (cast_expr (eval_aux value ctx)); 
       let v = eval_aux fexpr fctx 
       in Hashtbl.remove fctx va; v)
