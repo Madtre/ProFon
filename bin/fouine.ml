@@ -1,13 +1,12 @@
 open Lib
 open Expr
 
-
-let testmode = false
+let debugtree = false
 
 (* le traitement d'une expression en entr�e *)   
 let execute e =
   begin
-    if testmode then (print_string "Arbre de l'expr : ";
+    if debugtree then (print_string "Arbre de l'expr : ";
     affiche_expr e; (* on n'affiche plus e *)
     print_newline());
     let v =  eval e in (* on �value e *)
