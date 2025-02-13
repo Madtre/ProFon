@@ -1,1 +1,1 @@
-let k = ref 5 in k := 12 ; k 
+let k = ref 4 in let f () = k := (!k + 1) in f() ; !k

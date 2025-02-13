@@ -8,7 +8,7 @@
 let chiffre = ['0'-'9']
 let nombre = chiffre+
 let boolean = "true" | "false"
-let var = ['a'-'z']+['a'-'z' 'A'-'Z']*|'_'
+let var = ['a'-'z']+['a'-'z' 'A'-'Z']*|"()"|'_'
 
 (* définition des tokens *)
                

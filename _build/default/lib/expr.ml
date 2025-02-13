@@ -133,9 +133,11 @@ let castError (e : expr) (v : string) (wrongtype : string) : valeur =
   print_newline() ; print_string "Error in"; print_newline(); affiche_expr e ; print_newline();
   raise (CastError (v ^ " isn't a " ^ wrongtype))
 
+
 exception UnboundVariable of string
 let findVarValue (var : string) (ctx : env) : valeur = 
-  try Hashtbl.find ctx var
+  if var = "()" then VUnit
+  else try Hashtbl.find ctx var
   with Not_found -> raise (UnboundVariable var)
 
 exception NotAVariable of string
@@ -167,7 +169,7 @@ let eval (e : expr) : valeur =
     | PrInt e -> let i = cast_int(eval_aux e ctx) in VI(prInt i)
     
     | LetIn(e1,e2,e3) ->
-      if e1 = Var "_" 
+      if e1 = Var "_" || e1 = Var "()" 
         then let _ = eval_aux e2 ctx in eval_aux e3 ctx
         else let va = getVarName e1 ctx in 
           let vright = (eval_aux e2 ctx) in
@@ -177,7 +179,7 @@ let eval (e : expr) : valeur =
 
 
     | LetRecIn(e1,e2,e3) ->
-      if e1 = Var "_" 
+      if e1 = Var "_" || e1 = Var "()"
         then failwith "Error : Only variables are allowed as left-hand side of 'let rec'"
       else let funname = getVarName e1 ctx in 
         (match e2 with
@@ -232,6 +234,7 @@ let eval (e : expr) : valeur =
     |NotAVariable v -> castError e v "variable"
     |NotARef v -> castError e (cast_string v) "reference"
 
+    
 
   and getVarName (variable : expr) (ctx : env) : string = match variable with
   |Var v -> v
@@ -247,6 +250,8 @@ let eval (e : expr) : valeur =
     Hashtbl.remove ctx varname;
     if funname <> "" then Hashtbl.remove ctx funname;
     res
+
+
 
   in eval_aux e basectx
 
