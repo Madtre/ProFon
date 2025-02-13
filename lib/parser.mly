@@ -8,7 +8,11 @@ open Expr   (* rappel: dans expr.ml:
 let rec aux (m : expr) (e : expr) : expr = match m with
 |Fun(v, t) -> Fun(v, aux t e)
 |Var v -> Fun(Var v, e)
-|_ -> failwith "comportement innatendu de la grammaire"
+|_ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction"
+
+let upletlist (e : expr) (u : expr) : expr = match u with
+|Uplet(l) -> Uplet(e::l)
+|_-> failwith "comportement innatendu de la grammaire lors du parsing d'un uplet"
 %}
 
 
@@ -27,6 +31,7 @@ let rec aux (m : expr) (e : expr) : expr = match m with
 %token REC
 %token REF BANG ASSIGN
 %token SEPARATOR
+%token COMMA
 %token EOL             /* retour à la ligne */
 
 
@@ -41,6 +46,8 @@ let rec aux (m : expr) (e : expr) : expr = match m with
       PLUS et MINUS, car est sur une ligne située plus bas */
 %left TIMES NOT
 
+%left REF
+
 %left THEN
 %left ELSE
 
@@ -51,6 +58,8 @@ let rec aux (m : expr) (e : expr) : expr = match m with
 %left ASSIGN
 
 %left PRINT
+
+
 /* PARTIE 4, le point d'entrée ******************************************* */
 		    
 %start main             /* "start" signale le point d'entrée du parser: */
@@ -90,6 +99,9 @@ multivariables:
 | v = VAR m = multivariables { Fun(Var(v), m)}
 | v = VAR {Var(v)}
 
+uplets:
+| e=expression COMMA u = uplets  {upletlist e u}
+| e=expression RPAREN                  {Uplet([e])}
 
 expression:			   
    | v=value                               { v }  
@@ -105,7 +117,10 @@ expression:
    
    | IF e1=expression THEN e2=expression ELSE e3=expression  { IfThenElse(e1,e2,e3) }
    | IF e1=expression THEN e2=expression                     { IfThenElse(e1,e2,Unit)}
-   | LET v=VAR EQUAL e1 = expression IN e2=expression { LetIn(Var(v), e1, e2) }
+   
+   | LET v = VAR EQUAL e1 = expression IN e2=expression { LetIn(Var v, e1, e2) }
+   
+   | LET LPAREN e=expression COMMA u=uplets EQUAL e1 = expression IN e2=expression { LetIn(upletlist e u, e1, e2) }
    
    (*Je ne suis pas convaincu de l'efficacité de cette méthode, mais elle a le mérite de fonctionner*)
    | FUN v=multivariables RIGHTARROW e=expression                { aux v e}
@@ -114,11 +129,16 @@ expression:
    | LET v = VAR vs = multivariables EQUAL e=expression IN e2=expression          { LetIn(Var v, aux vs e, e2) }
    | LET REC v = VAR vs = multivariables EQUAL e=expression IN e2=expression          { LetRecIn(Var v, aux vs e, e2) }
 
+   (*| LET e = expression EQUAL e1 = expression IN e2=expression { LetIn(e, e1, e2) }*)
+
    | MINUS e=expression                    { Min(Cst 0, e) } (* le moins unaire *)  
    | PRINT e=expression                    { PrInt e } 
-   | REF v=value                           { Ref v }
+   | REF e=expression                           { Ref e }
    | BANG v=VAR                            { Access(Var v) }
    | v=VAR ASSIGN e=expression             { Assign(Var v, e) }
+
+   | LPAREN e=expression COMMA u=uplets    { upletlist e u }
+
 
    | a=applic                              { a }
    (*| v=VAR e2=expression                   { FunCall(Var v, e2) }*)

@@ -1,1 +1,1 @@
-let k = ref 4 in let f () = k := (!k + 1) in f() ; !k
+let (a,_) = (0,1) in a

@@ -28,7 +28,7 @@ type expr =
   | Access of expr
   | Assign of expr*expr
   | Accumulation of expr*expr
-
+  | Uplet of expr list
 
 
 (* fonction d'affichage *)
@@ -63,6 +63,7 @@ let rec string_of_expr e : string =
   | Access e -> aff_aux "Access(" [e]
   | Assign(e1,e2) -> aff_aux "Assign(" [e1;e2]
   | Accumulation(e1,e2) -> aff_aux "Accumulation(" [e1;e2]
+  | Uplet(e) -> aff_aux "Uplet(" e
 
  
 let affiche_expr e = print_string (string_of_expr e)
@@ -75,6 +76,7 @@ type valeur =
 |VB of bool
 |VFun of (valeur->valeur)
 |VRef of valeur
+|VUplet of valeur list
 
 (*Fonctions permettant de cast des valeurs à un type utilisable*)
 exception NotAnInt of valeur
@@ -99,6 +101,7 @@ let cast_ref (v : valeur) : valeur = match v with
   |VRef r -> r
   |_ -> raise (NotARef v)
 
+
 let cast_string (v : valeur) : string = 
   let rec getcontent (v : valeur) : string = (match v with
     |VI k -> string_of_int k
@@ -106,14 +109,27 @@ let cast_string (v : valeur) : string =
     |VUnit -> "()"
     |VFun _ -> "<fun>"
     |VRef r -> "{contents = " ^ (getcontent r) ^ "}"
-
+    |VUplet l -> let (_, upletv) = (uplethelper l) in "(" ^ upletv ^ ")"
   )
-  in match v with
+  and uplethelper (l : valeur list) : (string * string) = let (uplett, upletv, _) = (List.fold_left 
+  
+  (fun accu elem -> let (accu1,accu2,b) = accu in 
+    (if b 
+      then ("valeur * " ^ accu1, accu2 ^ "," ^ (getcontent elem), true) 
+      else ("valeur * " ^ accu1, accu2 ^ (getcontent elem), true)
+    )
+  )
+    ("","", false) l) in (uplett, upletv)
+  in
+    
+  match v with
   |VI k -> "- : int = " ^ string_of_int k
   |VB b -> "- : bool = " ^ string_of_bool b
   |VUnit -> "- : unit"
   |VFun _ -> "- : function"
   |VRef _ -> "- : valeur ref = " ^ (getcontent v)
+  |VUplet l -> let (uplett, upletv) = uplethelper l in
+    "- : " ^ uplett ^ " = (" ^ upletv ^ ")"
 
 let is_ref (v : valeur) : bool = match v with
   |VRef _ -> true
@@ -148,7 +164,7 @@ let eval (e : expr) : valeur =
   (*ctx représente le contexte général d'éxécution, en opposition au contexte de chaque fonction*)
   let globalctx : env = Hashtbl.create 20 in
   let basectx : env = Hashtbl.create 20 in
-  let rec eval_aux (e : expr) (ctx : env): valeur = 
+  let rec eval_aux (ctx : env) (e : expr) : valeur = 
     if testmode 
       then (affiche_expr e ; print_newline(); 
     print_string "global ctx : " ; print_newline() ; affiche_env globalctx ; 
@@ -159,24 +175,35 @@ let eval (e : expr) : valeur =
     | Bool b -> VB b
     | Unit -> VUnit
     | Var va -> findVarValue va ctx      
-    | Add(e1,e2) -> VI (cast_int (eval_aux e1 ctx) + cast_int (eval_aux e2 ctx))
-    | Mul(e1,e2) -> VI (cast_int (eval_aux e1 ctx) * cast_int (eval_aux e2 ctx))
-    | Min(e1,e2) -> VI (cast_int (eval_aux e1 ctx) - cast_int (eval_aux e2 ctx))
-    | And(e1,e2) -> VB (cast_bool (eval_aux e1 ctx) && cast_bool (eval_aux e2 ctx))
-    | Or(e1,e2) -> VB (cast_bool (eval_aux e1 ctx) || cast_bool (eval_aux e2 ctx))
-    | Not e -> VB (not (cast_bool (eval_aux e ctx)))
-    | IfThenElse(e1,e2,e3) -> if cast_bool (eval_aux e1 ctx) then eval_aux e2 ctx else eval_aux e3 ctx
-    | PrInt e -> let i = cast_int(eval_aux e ctx) in VI(prInt i)
+    | Add(e1,e2) -> VI (cast_int (eval_aux ctx e1) + cast_int (eval_aux ctx e2))
+    | Mul(e1,e2) -> VI (cast_int (eval_aux ctx e1) * cast_int (eval_aux ctx e2))
+    | Min(e1,e2) -> VI (cast_int (eval_aux ctx e1) - cast_int (eval_aux ctx e2))
+    | And(e1,e2) -> VB (cast_bool (eval_aux ctx e1) && cast_bool (eval_aux ctx e2))
+    | Or(e1,e2) -> VB (cast_bool (eval_aux ctx e1) || cast_bool (eval_aux ctx e2))
+    | Not e -> VB (not (cast_bool (eval_aux ctx e)))
+    | IfThenElse(e1,e2,e3) -> if cast_bool (eval_aux ctx e1) then eval_aux ctx e2 else eval_aux ctx e3
+    | PrInt e -> let i = cast_int(eval_aux ctx e) in VI(prInt i)
     
     | LetIn(e1,e2,e3) ->
       if e1 = Var "_" || e1 = Var "()" 
-        then let _ = eval_aux e2 ctx in eval_aux e3 ctx
-        else let va = getVarName e1 ctx in 
-          let vright = (eval_aux e2 ctx) in
+        then let _ = eval_aux ctx e2 in eval_aux ctx e3
+        else 
+          (match e1 with
+          |Var va -> (*cas classique let v = e2 in e3*)
+          let vright = (eval_aux ctx e2) in
           (if (is_ref vright)
             then Hashtbl.add globalctx va (cast_ref vright)) ;
-          Hashtbl.add ctx va vright ; let v = eval_aux e3 ctx in Hashtbl.remove ctx va; v
-
+          Hashtbl.add ctx va vright ; let v = eval_aux ctx e3 in Hashtbl.remove ctx va; v
+          |Uplet(l1) -> (match e2 with (*cas uplet let (v1, v2,...) = (e1,e2,...) = e3*)
+              |Uplet(l2)-> (try
+                List.iter2 (fun p1 p2 -> let va = getVarName p1 ctx in Hashtbl.add ctx va (eval_aux ctx p2)) l1 l2 ;
+                let res = eval_aux ctx e3 in
+                List.iter (fun p1 -> let va = getVarName p1 ctx in Hashtbl.remove ctx va) l1 ; res
+              with
+              |Invalid_argument _ -> failwith "Type Error (les deux uplets n'ont pas la même taille)")
+              |_ -> failwith "Type Error (à définir)")
+          |_ -> failwith "Invalid left-hand side for a 'let in'"
+          )
 
     | LetRecIn(e1,e2,e3) ->
       if e1 = Var "_" || e1 = Var "()"
@@ -186,7 +213,7 @@ let eval (e : expr) : valeur =
         | Fun(v, e) -> 
           let variable = getVarName v ctx in
           Hashtbl.add ctx funname (VFun(defineFunction funname variable e ctx));
-          let res = eval_aux e3 ctx
+          let res = eval_aux ctx e3
           in Hashtbl.remove ctx funname; res
         | _ -> failwith "Error : This kind of expression is not allowed as right-hand side of 'let rec'")
 
@@ -198,17 +225,17 @@ let eval (e : expr) : valeur =
       VFun(defineFunction "" va e2 fctx)
 
     | FunCall(func, value) -> 
-      let f = cast_fun(eval_aux func ctx) in
-      let v = eval_aux value ctx in
+      let f = cast_fun(eval_aux ctx func) in
+      let v = eval_aux ctx value in
       f v
 
-    | Ref e -> VRef(eval_aux e ctx)
+    | Ref e -> VRef(eval_aux ctx e)
 
     | Access(e) -> findVarValue (getVarName e globalctx) globalctx
 
     | Assign(var,nvalue) ->
       let varname = getVarName var globalctx in
-      let nv = eval_aux nvalue ctx in
+      let nv = eval_aux ctx nvalue in
       Hashtbl.replace globalctx varname nv;
       (try 
         let v = findVarValue varname ctx in
@@ -221,10 +248,12 @@ let eval (e : expr) : valeur =
       VUnit
 
     | Accumulation(e1, e2) ->
-      let v1 = eval_aux e1 ctx in
-      match v1 with
-      |VUnit -> eval_aux e2 ctx
-      |_ -> warning "[non-unit-statement]: this expression should have type unit" ; eval_aux e2 ctx
+      let v1 = eval_aux ctx e1 in
+      (match v1 with
+      |VUnit -> eval_aux ctx e2
+      |_ -> warning "[non-unit-statement]: this expression should have type unit" ; eval_aux ctx e2)
+
+    | Uplet(elist) -> VUplet(List.map (eval_aux ctx) elist)
 
   end
     with 
@@ -238,7 +267,7 @@ let eval (e : expr) : valeur =
 
   and getVarName (variable : expr) (ctx : env) : string = match variable with
   |Var v -> v
-  |_ -> raise (NotAVariable (cast_string(eval_aux variable ctx)))
+  |_ -> raise (NotAVariable (cast_string(eval_aux ctx variable)))
 
   (*On crée une valeur -> valeur par curryfication*)
   and defineFunction (funname : string) (varname : string) (e : expr) (ctx : env) (v : valeur) : valeur = 
@@ -246,14 +275,14 @@ let eval (e : expr) : valeur =
     (if (is_ref v)
       then Hashtbl.add globalctx varname (cast_ref v)) ;
     Hashtbl.add ctx varname v;
-    let res = eval_aux e ctx in
+    let res = eval_aux ctx e in
     Hashtbl.remove ctx varname;
     if funname <> "" then Hashtbl.remove ctx funname;
     res
 
 
 
-  in eval_aux e basectx
+  in eval_aux basectx e
 
 
   

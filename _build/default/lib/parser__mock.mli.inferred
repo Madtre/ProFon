@@ -21,13 +21,16 @@ type token =
   | EQUAL
   | EOL
   | ELSE
+  | COMMA
   | BOOL of bool
   | BANG
   | ASSIGN
   | AND
 val aux : Expr.expr -> Expr.expr -> Expr.expr
+val upletlist : Expr.expr -> Expr.expr -> Expr.expr
 val menhir_begin_marker : int
 val xv_value : Expr.expr
+val xv_uplets : Expr.expr
 val xv_sexpr : Expr.expr
 val xv_multivariables : Expr.expr
 val xv_main : Expr.expr

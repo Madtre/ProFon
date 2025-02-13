@@ -24,6 +24,7 @@ type token =
   | EQUAL
   | EOL
   | ELSE
+  | COMMA
   | BOOL of (bool)
   | BANG
   | ASSIGN
