@@ -29,6 +29,8 @@ type expr =
   | Assign of expr*expr
   | Accumulation of expr*expr
   | Uplet of expr list
+  | For of expr*expr*expr*expr
+  | While of expr*expr
 
 
 (* fonction d'affichage *)
@@ -64,6 +66,8 @@ let rec string_of_expr e : string =
   | Assign(e1,e2) -> aff_aux "Assign(" [e1;e2]
   | Accumulation(e1,e2) -> aff_aux "Accumulation(" [e1;e2]
   | Uplet(e) -> aff_aux "Uplet(" e
+  | For(e1, e2, e3, e4) -> aff_aux "For(" [e1;e2;e3;e4]
+  | While(b, e) -> aff_aux "While(" [b;e]
 
  
 let affiche_expr e = print_string (string_of_expr e)
@@ -254,6 +258,23 @@ let eval (e : expr) : valeur =
       |_ -> warning "[non-unit-statement]: this expression should have type unit" ; eval_aux ctx e2)
 
     | Uplet(elist) -> VUplet(List.map (eval_aux ctx) elist)
+
+    | For(v, emin, emax, e) -> let va = getVarName v ctx in
+      let imin = cast_int(eval_aux ctx emin) in
+      let imax = cast_int(eval_aux ctx emax) in 
+      for i = imin to imax do 
+        Hashtbl.add ctx va (VI i);
+        let res = eval_aux ctx e in
+        Hashtbl.remove ctx va;
+        if res <> VUnit then warning ((string_of_expr e) ^ " this expression should have type unit")
+      done;
+      VUnit
+
+    | While(b, e) -> 
+      while cast_bool(eval_aux ctx b) do
+        if eval_aux ctx e <> VUnit then warning ((string_of_expr e) ^ " this expression should have type unit")        
+      done;      
+      VUnit
 
   end
     with 

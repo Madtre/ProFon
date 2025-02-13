@@ -2,7 +2,9 @@
 (* The type of tokens. *)
 
 type token = 
+  | WHILE
   | VAR of (string)
+  | TO
   | TIMES
   | THEN
   | SEPARATOR
@@ -21,9 +23,12 @@ type token =
   | IN
   | IF
   | FUN
+  | FOR
   | EQUAL
   | EOL
   | ELSE
+  | DONE
+  | DO
   | COMMA
   | BOOL of (bool)
   | BANG

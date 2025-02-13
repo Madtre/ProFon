@@ -32,6 +32,7 @@ let upletlist (e : expr) (u : expr) : expr = match u with
 %token REF BANG ASSIGN
 %token SEPARATOR
 %token COMMA
+%token FOR WHILE TO DO DONE
 %token EOL             /* retour à la ligne */
 
 
@@ -40,6 +41,12 @@ let upletlist (e : expr) (u : expr) : expr = match u with
 
 %left RIGHTARROW
 %left EQUAL
+
+
+%left SEPARATOR
+
+%left ASSIGN
+
 %left PLUS MINUS AND OR   /* associativité gauche: a+b+c, c'est (a+b)+c */
 
    /* priorité plus grande de TIMES par rapport à
@@ -53,9 +60,6 @@ let upletlist (e : expr) (u : expr) : expr = match u with
 
 %left IN
 
-%left SEPARATOR
-
-%left ASSIGN
 
 %left PRINT
 
@@ -138,6 +142,10 @@ expression:
    | v=VAR ASSIGN e=expression             { Assign(Var v, e) }
 
    | LPAREN e=expression COMMA u=uplets    { upletlist e u }
+
+   | FOR v=VAR EQUAL val1 = value TO val2=value DO e = expression DONE { For(Var v, val1, val2, e) }
+
+   | WHILE b = expression DO e = expression DONE                                   { While(b,e)}
 
 
    | a=applic                              { a }
