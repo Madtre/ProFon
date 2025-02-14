@@ -9,6 +9,8 @@ type token =
   | RIGHTARROW
   | REF
   | REC
+  | RBRACKET
+  | QUATROSPUNTOS
   | PRINT
   | PLUS
   | OR
@@ -16,6 +18,7 @@ type token =
   | MINUS
   | LPAREN
   | LET
+  | LBRACKET
   | INT of int
   | IN
   | IF
@@ -42,6 +45,7 @@ val xv_muplets : Expr.motif
 val xv_multivariables : Expr.expr
 val xv_motif : Expr.motif
 val xv_main : Expr.expr
+val xv_listexpr : Expr.expr
 val xv_expression : Expr.expr
 val xv_applic : Expr.expr
 val menhir_end_marker : int

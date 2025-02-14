@@ -12,6 +12,8 @@ type token =
   | RIGHTARROW
   | REF
   | REC
+  | RBRACKET
+  | QUATROSPUNTOS
   | PRINT
   | PLUS
   | OR
@@ -19,6 +21,7 @@ type token =
   | MINUS
   | LPAREN
   | LET
+  | LBRACKET
   | INT of (int)
   | IN
   | IF

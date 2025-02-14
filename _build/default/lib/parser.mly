@@ -12,10 +12,12 @@ let rec aux (m : expr) (e : expr) : expr = match m with
 
 let upletlist (e : expr) (u : expr) : expr = match u with
 |Uplet(l) -> Uplet(e::l)
+|List(l) -> List(e::l)
 |_-> failwith "comportement innatendu de la grammaire lors du parsing d'un uplet"
 
 let mupletlist (e : motif) (u : motif) : motif = match u with
 |MUplet(l) -> MUplet(e::l)
+|MCons(a,l)->MCons(e,MCons(a,l))
 |_-> failwith "comportement innatendu de la grammaire lors du parsing d'un motif d'uplet"
 
 %}
@@ -38,6 +40,7 @@ let mupletlist (e : motif) (u : motif) : motif = match u with
 %token SEPARATOR
 %token COMMA
 %token FOR WHILE TO DO DONE
+%token QUATROSPUNTOS LBRACKET RBRACKET
 %token EOL             /* retour à la ligne */
 
 
@@ -52,7 +55,6 @@ let mupletlist (e : motif) (u : motif) : motif = match u with
 
 %left ASSIGN
 
-
 %left THEN
 %left ELSE
 
@@ -63,7 +65,6 @@ let mupletlist (e : motif) (u : motif) : motif = match u with
 %left TIMES NOT
 
 %left REF
-
 
 %left IN
 
@@ -121,6 +122,10 @@ uplets:
 | e=expression COMMA u = uplets  {upletlist e u}
 | e=expression RPAREN                  {Uplet([e])}
 
+listexpr:
+| e = sexpr QUATROSPUNTOS l = listexpr { upletlist e l }
+| LBRACKET RBRACKET                    { List([]) }
+
 expression:			   
    | v=value                               { v }  
 
@@ -157,12 +162,14 @@ expression:
 
    | LPAREN e=expression COMMA u=uplets    { upletlist e u }
 
+   | e = sexpr QUATROSPUNTOS l = listexpr {upletlist e l }
+   (*| LBRACKET RBRACKET                     { List([]) }*)
+
    | FOR v=VAR EQUAL val1 = value TO val2=value DO e = expression DONE { For(Var v, val1, val2, e) }
 
    | WHILE b = expression DO e = expression DONE                                   { While(b,e)}
 
 
    | a=applic                              { a }
-   (*| v=VAR e2=expression                   { FunCall(Var v, e2) }*)
 
 

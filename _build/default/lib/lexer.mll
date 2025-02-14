@@ -44,6 +44,10 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | "to"            { TO }
   | "do"            { DO }
   | "done"          { DONE }
+  | "["             { LBRACKET }
+  | "]"             { RBRACKET }
+  | "::"            { QUATROSPUNTOS }
+
   | nombre as s { INT (int_of_string s) }
   | boolean as b { BOOL (bool_of_string b) }
   | var as v { VAR v }
