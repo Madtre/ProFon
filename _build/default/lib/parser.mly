@@ -114,9 +114,19 @@ muplets:
 | m=motif COMMA u = muplets {mupletlist m u} 
 | m=motif RPAREN            {MUplet([m])}
 
+mlist:
+| e = smotif QUATROSPUNTOS l = mlist { MCons(e,l) }
+| LBRACKET RBRACKET                    { MNil }
+
+smotif :
+|v = VAR                            {MVar(v)}
+|LPAREN m=motif COMMA u=muplets     {mupletlist m u}
+|LPAREN m = motif RPAREN            {m}
+
 motif:
 |v = VAR                      {MVar(v)}
 |LPAREN m=motif COMMA u=muplets   {mupletlist m u}
+|m = smotif QUATROSPUNTOS l=mlist  {MCons(m,l)}
 
 uplets:
 | e=expression COMMA u = uplets  {upletlist e u}
