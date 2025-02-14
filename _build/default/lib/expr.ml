@@ -6,6 +6,12 @@ let warning (mess : string) = print_string "Warning : "; print_string mess; prin
 
 let testmode = false;;
 
+type motif =
+|MVar of string
+|MUplet of motif list
+|MNil
+|MCons of motif * motif
+
 (* un type pour des expressions arithm�tiques simples *)
 type expr =
     Cst of int
@@ -20,29 +26,45 @@ type expr =
   | Not of expr
   | IfThenElse of expr*expr*expr
   | PrInt of expr
-  | LetIn of expr*expr*expr
+  | LetIn of motif*expr*expr
   | LetRecIn of expr*expr*expr
   | Fun of expr*expr
   | FunCall of expr*expr
   | Ref of expr
   | Access of expr
   | Assign of expr*expr
-  | Accumulation of expr*expr
   | Uplet of expr list
   | For of expr*expr*expr*expr
   | While of expr*expr
+  | List of expr list
 
 
 (* fonction d'affichage *)
 (* NB : dans votre "vraie fouine", il faudra afficher
    du code Caml, et pas des arbres avec des Add, Mul, etc. *)
 
-let rec string_of_expr e : string = 
+let rec string_of_motif (m:motif) : string = 
+  let rec aff_aux (s:string) (l:motif list) = s ^ (
+    match l with
+    |[]->")"
+    |p::q-> (if s = "" then "," else "") ^ (string_of_motif p) ^ (aff_aux "" q))
+in match m with
+  |MVar v -> v
+  |MUplet l -> aff_aux "MUplet(" l
+  |MNil -> "::[]"
+  |MCons(a,l) -> (aff_aux "" [a]) ^ "::" ^ (aff_aux "" [l]) 
+
+let rec string_of_expr (e:expr) : string = 
   (*permet l'affichage de n uplets*)
-  let rec aff_aux s l = s ^ (
+  let rec aff_aux (s:string) (l:expr list) = s ^ (
     match l with
     |[]->")"
     |p::q-> (if s = "" then "," else "") ^ (string_of_expr p) ^ (aff_aux "" q))
+  in
+  let rec aff_aux2 (s: string) (m:motif list) (l:expr list) : string = s ^(
+    match m with
+    |[]-> aff_aux "" l
+    |p::q-> (if s = "" then "," else "") ^ (string_of_motif p) ^ (aff_aux2 "" q l))
   in
   match e with
   | Cst k -> string_of_int k
@@ -57,17 +79,17 @@ let rec string_of_expr e : string =
   | Not e -> aff_aux "Not(" [e]
   | IfThenElse(e1,e2,e3) -> aff_aux "IfThenElse(" [e1;e2;e3]
   | PrInt e -> aff_aux "PrInt(" [e]
-  | LetIn(e1,e2,e3) -> aff_aux "LetIn(" [e1;e2;e3]
+  | LetIn(e1,e2,e3) -> aff_aux2 "LetIn(" [e1] [e2;e3]
   | LetRecIn(e1,e2,e3) -> aff_aux "LetRecIn(" [e1;e2;e3]
-  | Fun(e1,e2) -> aff_aux "Fun(" [e1;e2]
+  | Fun(e1,e2) -> aff_aux "Fun("[e1;e2]
   | FunCall(e1,e2) -> aff_aux "FunCall(" [e1;e2]
   | Ref e -> aff_aux "Ref(" [e]
   | Access e -> aff_aux "Access(" [e]
   | Assign(e1,e2) -> aff_aux "Assign(" [e1;e2]
-  | Accumulation(e1,e2) -> aff_aux "Accumulation(" [e1;e2]
   | Uplet(e) -> aff_aux "Uplet(" e
   | For(e1, e2, e3, e4) -> aff_aux "For(" [e1;e2;e3;e4]
   | While(b, e) -> aff_aux "While(" [b;e]
+  | List l -> aff_aux "List(" l
 
  
 let affiche_expr e = print_string (string_of_expr e)
@@ -81,6 +103,7 @@ type valeur =
 |VFun of (valeur->valeur)
 |VRef of valeur
 |VUplet of valeur list
+|VList of valeur list
 
 (*Fonctions permettant de cast des valeurs à un type utilisable*)
 exception NotAnInt of valeur
@@ -113,13 +136,14 @@ let cast_string (v : valeur) : string =
     |VUnit -> "()"
     |VFun _ -> "<fun>"
     |VRef r -> "{contents = " ^ (getcontent r) ^ "}"
-    |VUplet l -> let (_, upletv) = (uplethelper l) in "(" ^ upletv ^ ")"
+    |VUplet l -> let (_, upletv) = (uplethelper l ",") in "(" ^ upletv ^ ")"
+    |VList l -> let (_, upletv) = (uplethelper l "::") in "(" ^ upletv ^ ")"
   )
-  and uplethelper (l : valeur list) : (string * string) = let (uplett, upletv, _) = (List.fold_left 
+  and uplethelper (l : valeur list) (separator : string) : (string * string) = let (uplett, upletv, _) = (List.fold_left 
   
   (fun accu elem -> let (accu1,accu2,b) = accu in 
     (if b 
-      then ("valeur * " ^ accu1, accu2 ^ "," ^ (getcontent elem), true) 
+      then ("valeur * " ^ accu1, accu2 ^ separator ^ (getcontent elem), true) 
       else ("valeur * " ^ accu1, accu2 ^ (getcontent elem), true)
     )
   )
@@ -132,8 +156,10 @@ let cast_string (v : valeur) : string =
   |VUnit -> "- : unit"
   |VFun _ -> "- : function"
   |VRef _ -> "- : valeur ref = " ^ (getcontent v)
-  |VUplet l -> let (uplett, upletv) = uplethelper l in
+  |VUplet l -> let (uplett, upletv) = uplethelper l "," in
     "- : " ^ uplett ^ " = (" ^ upletv ^ ")"
+  |VList l -> let (_, upletv) = uplethelper l "::" in
+    "- : valeur list = " ^ upletv ^ "::[]"
 
 let is_ref (v : valeur) : bool = match v with
   |VRef _ -> true
@@ -188,26 +214,13 @@ let eval (e : expr) : valeur =
     | IfThenElse(e1,e2,e3) -> if cast_bool (eval_aux ctx e1) then eval_aux ctx e2 else eval_aux ctx e3
     | PrInt e -> let i = cast_int(eval_aux ctx e) in VI(prInt i)
     
-    | LetIn(e1,e2,e3) ->
-      if e1 = Var "_" || e1 = Var "()" 
+    | LetIn(m,e2,e3) ->
+      if m = MVar "_" || m = MVar "()"  
         then let _ = eval_aux ctx e2 in eval_aux ctx e3
         else 
-          (match e1 with
-          |Var va -> (*cas classique let v = e2 in e3*)
-          let vright = (eval_aux ctx e2) in
-          (if (is_ref vright)
-            then Hashtbl.add globalctx va (cast_ref vright)) ;
-          Hashtbl.add ctx va vright ; let v = eval_aux ctx e3 in Hashtbl.remove ctx va; v
-          |Uplet(l1) -> (match e2 with (*cas uplet let (v1, v2,...) = (e1,e2,...) = e3*)
-              |Uplet(l2)-> (try
-                List.iter2 (fun p1 p2 -> let va = getVarName p1 ctx in Hashtbl.add ctx va (eval_aux ctx p2)) l1 l2 ;
-                let res = eval_aux ctx e3 in
-                List.iter (fun p1 -> let va = getVarName p1 ctx in Hashtbl.remove ctx va) l1 ; res
-              with
-              |Invalid_argument _ -> failwith "Type Error (les deux uplets n'ont pas la même taille)")
-              |_ -> failwith "Type Error (à définir)")
-          |_ -> failwith "Invalid left-hand side for a 'let in'"
-          )
+          (absorbMotif ctx m (eval_aux ctx e2);
+          let res = eval_aux ctx e3 in
+          unabsorbMotif ctx m ; res)
 
     | LetRecIn(e1,e2,e3) ->
       if e1 = Var "_" || e1 = Var "()"
@@ -251,12 +264,6 @@ let eval (e : expr) : valeur =
 
       VUnit
 
-    | Accumulation(e1, e2) ->
-      let v1 = eval_aux ctx e1 in
-      (match v1 with
-      |VUnit -> eval_aux ctx e2
-      |_ -> warning "[non-unit-statement]: this expression should have type unit" ; eval_aux ctx e2)
-
     | Uplet(elist) -> VUplet(List.map (eval_aux ctx) elist)
 
     | For(v, emin, emax, e) -> let va = getVarName v ctx in
@@ -275,6 +282,7 @@ let eval (e : expr) : valeur =
         if eval_aux ctx e <> VUnit then warning ((string_of_expr e) ^ " this expression should have type unit")        
       done;      
       VUnit
+    | List(l) -> VList(List.map (eval_aux ctx) l)
 
   end
     with 
@@ -289,6 +297,35 @@ let eval (e : expr) : valeur =
   and getVarName (variable : expr) (ctx : env) : string = match variable with
   |Var v -> v
   |_ -> raise (NotAVariable (cast_string(eval_aux ctx variable)))
+  
+  and absorbMotif (ctx : env) (m : motif) (v : valeur) = match m with
+  |MVar va -> (*cas classique let v = e2 in e3*)
+  (if (is_ref v)
+    then Hashtbl.add globalctx va (cast_ref v)) ;
+  Hashtbl.add ctx va v
+  |MUplet(l1) -> (match v with (*cas uplet let (v1, v2,...) = (e1,e2,...) = e3*)
+      |VUplet(l2)-> (try
+        List.iter2 (absorbMotif ctx) l1 l2 ;
+      with
+      |Invalid_argument _ -> failwith "Type Error (les deux uplets n'ont pas la même taille)")
+      |_ -> failwith "Type Error (à définir)")
+  |MNil -> if (v <> VList([])) then failwith "Erreur lié à un motif étrange / les listes n'ont pas la même longueur" else ()
+  |MCons(m, l) -> (match v with
+      |VList(p::q) -> absorbMotif ctx m p ; absorbMotif ctx l (VList q)
+      |_ -> failwith "Erreur d'absorbtion plutôt regrettable concernant des listes"
+  )
+
+
+  and unabsorbMotif (ctx : env) (m : motif) : unit = match m with
+    |MVar va -> Hashtbl.remove ctx va
+    |MUplet(l1) -> 
+        List.iter (unabsorbMotif ctx) l1
+    |MNil -> ()
+    |MCons(m, l) -> unabsorbMotif ctx m ; unabsorbMotif ctx l
+    
+  (*|_ -> failwith "Invalid left-hand side for a 'let in'"*)
+  
+
 
   (*On crée une valeur -> valeur par curryfication*)
   and defineFunction (funname : string) (varname : string) (e : expr) (ctx : env) (v : valeur) : valeur = 

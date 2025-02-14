@@ -3,5 +3,26 @@
 (** @canonical Dune__exe.Basic *)
 module Basic = Dune__exe__Basic
 
+(** @canonical Dune__exe.TestFor *)
+module TestFor = Dune__exe__TestFor
+
+(** @canonical Dune__exe.TestFunCall *)
+module TestFunCall = Dune__exe__TestFunCall
+
+(** @canonical Dune__exe.TestFunCallRec *)
+module TestFunCallRec = Dune__exe__TestFunCallRec
+
+(** @canonical Dune__exe.TestFunRec *)
+module TestFunRec = Dune__exe__TestFunRec
+
+(** @canonical Dune__exe.TestFunRecSimple *)
+module TestFunRecSimple = Dune__exe__TestFunRecSimple
+
+(** @canonical Dune__exe.TestUplet *)
+module TestUplet = Dune__exe__TestUplet
+
+(** @canonical Dune__exe.TestWhile *)
+module TestWhile = Dune__exe__TestWhile
+
 (** @canonical Dune__exe.Test_Rendu0 *)
 module Test_Rendu0 = Dune__exe__Test_Rendu0

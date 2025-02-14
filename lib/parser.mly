@@ -13,6 +13,11 @@ let rec aux (m : expr) (e : expr) : expr = match m with
 let upletlist (e : expr) (u : expr) : expr = match u with
 |Uplet(l) -> Uplet(e::l)
 |_-> failwith "comportement innatendu de la grammaire lors du parsing d'un uplet"
+
+let mupletlist (e : motif) (u : motif) : motif = match u with
+|MUplet(l) -> MUplet(e::l)
+|_-> failwith "comportement innatendu de la grammaire lors du parsing d'un motif d'uplet"
+
 %}
 
 
@@ -47,6 +52,9 @@ let upletlist (e : expr) (u : expr) : expr = match u with
 
 %left ASSIGN
 
+%left THEN
+%left ELSE
+
 %left PLUS MINUS AND OR   /* associativité gauche: a+b+c, c'est (a+b)+c */
 
    /* priorité plus grande de TIMES par rapport à
@@ -55,11 +63,8 @@ let upletlist (e : expr) (u : expr) : expr = match u with
 
 %left REF
 
-%left THEN
-%left ELSE
 
 %left IN
-
 
 %left PRINT
 
@@ -103,6 +108,14 @@ multivariables:
 | v = VAR m = multivariables { Fun(Var(v), m)}
 | v = VAR {Var(v)}
 
+muplets:
+| m=motif COMMA u = muplets {mupletlist m u} 
+| m=motif RPAREN            {MUplet([m])}
+
+motif:
+|v = VAR                      {MVar(v)}
+|LPAREN m=motif COMMA u=muplets   {mupletlist m u}
+
 uplets:
 | e=expression COMMA u = uplets  {upletlist e u}
 | e=expression RPAREN                  {Uplet([e])}
@@ -111,7 +124,7 @@ expression:
    | v=value                               { v }  
 
    | LPAREN e=expression RPAREN            { e } 
-   | e1=expression SEPARATOR e2=expression { Accumulation(e1, e2) }
+   | e1=expression SEPARATOR e2=expression { LetIn(MVar "_",e1, e2) }
    | e1=expression PLUS e2=expression      { Add(e1,e2) }
    | e1=expression TIMES e2=expression     { Mul(e1,e2) }
    | e1=expression MINUS e2=expression     { Min(e1,e2) }
@@ -122,15 +135,15 @@ expression:
    | IF e1=expression THEN e2=expression ELSE e3=expression  { IfThenElse(e1,e2,e3) }
    | IF e1=expression THEN e2=expression                     { IfThenElse(e1,e2,Unit)}
    
-   | LET v = VAR EQUAL e1 = expression IN e2=expression { LetIn(Var v, e1, e2) }
+   | LET m = motif EQUAL e1 = expression IN e2=expression { LetIn(m, e1, e2) }
    
-   | LET LPAREN e=expression COMMA u=uplets EQUAL e1 = expression IN e2=expression { LetIn(upletlist e u, e1, e2) }
+   (*| LET LPAREN e=expression COMMA u=uplets EQUAL e1 = expression IN e2=expression { LetIn(upletlist e u, e1, e2) }*)
    
    (*Je ne suis pas convaincu de l'efficacité de cette méthode, mais elle a le mérite de fonctionner*)
    | FUN v=multivariables RIGHTARROW e=expression                { aux v e}
-   | LET v = VAR vs = multivariables EQUAL e=expression          { LetIn(Var v, aux vs e, Var v) }
+   | LET v = VAR vs = multivariables EQUAL e=expression          { LetIn(MVar v, aux vs e, Var v) } 
    | LET REC v = VAR vs = multivariables EQUAL e=expression          { LetRecIn(Var v, aux vs e, Var v) }
-   | LET v = VAR vs = multivariables EQUAL e=expression IN e2=expression          { LetIn(Var v, aux vs e, e2) }
+   | LET v = VAR vs = multivariables EQUAL e=expression IN e2=expression          { LetIn(MVar v, aux vs e, e2) }
    | LET REC v = VAR vs = multivariables EQUAL e=expression IN e2=expression          { LetRecIn(Var v, aux vs e, e2) }
 
    (*| LET e = expression EQUAL e1 = expression IN e2=expression { LetIn(e, e1, e2) }*)
@@ -138,7 +151,7 @@ expression:
    | MINUS e=expression                    { Min(Cst 0, e) } (* le moins unaire *)  
    | PRINT e=expression                    { PrInt e } 
    | REF e=expression                           { Ref e }
-   | BANG v=VAR                            { Access(Var v) }
+   | BANG v=VAR                            { Access(Var v) }(*rajouter les bang plus compliqués*)
    | v=VAR ASSIGN e=expression             { Assign(Var v, e) }
 
    | LPAREN e=expression COMMA u=uplets    { upletlist e u }
