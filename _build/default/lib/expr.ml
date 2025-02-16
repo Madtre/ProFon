@@ -1,10 +1,14 @@
+let debug_mode = ref false
+
+let src_mode = ref false
+
 
 let prInt x = print_int x;print_newline(); x;;
 
-(*A defaut de mieux pour l'instant, on log les warnings avec un print*)
-let warning (mess : string) = print_string "Warning : "; print_string mess; print_newline();;
 
-let testmode = false;;
+(*A defaut de mieux pour l'instant, on log les warnings avec un print*)
+let warning (mess : string) = if !debug_mode then (print_string "Warning : "; print_string mess; print_newline());;
+
 
 type motif =
 |MVar of string
@@ -20,14 +24,18 @@ type expr =
   | Unit
   | Add of expr*expr
   | Mul of expr*expr
+  | Div of expr*expr
   | Min of expr*expr
   | And of expr*expr
   | Or of expr*expr
+  | Equal of expr*expr
+  | Leq of expr*expr
+  | Lt of expr*expr
   | Not of expr
   | IfThenElse of expr*expr*expr
   | PrInt of expr
-  | LetIn of motif*expr*expr
-  | LetRecIn of expr*expr*expr
+  | LetIn of motif*expr*expr*bool
+  | LetRecIn of expr*expr*expr*bool
   | Fun of expr*expr
   | FunCall of expr*expr
   | Ref of expr
@@ -37,6 +45,7 @@ type expr =
   | For of expr*expr*expr*expr
   | While of expr*expr
   | List of expr list
+  | MatchWith of expr * ((motif * expr) list)
 
 
 (* fonction d'affichage *)
@@ -56,41 +65,40 @@ in match m with
 
 let rec string_of_expr (e:expr) : string = 
   (*permet l'affichage de n uplets*)
-  let rec aff_aux (s:string) (l:expr list) = s ^ (
+  let rec aff_aux (s:string) l f = s ^ ( (*typer la fonction en 'a list et 'a -> string semble contrarier caml*)
     match l with
-    |[]->")"
-    |p::q-> (if s = "" then "," else "") ^ (string_of_expr p) ^ (aff_aux "" q))
-  in
-  let rec aff_aux2 (s: string) (m:motif list) (l:expr list) : string = s ^(
-    match m with
-    |[]-> aff_aux "" l
-    |p::q-> (if s = "" then "," else "") ^ (string_of_motif p) ^ (aff_aux2 "" q l))
+    |[]->""
+    |p::q-> (if s = "" then "," else "") ^ (f p) ^ (aff_aux "" q f))
   in
   match e with
   | Cst k -> string_of_int k
   | Bool b -> if b then "true" else "false"
   | Var v -> v
   | Unit -> "()"
-  | Add(e1,e2) -> aff_aux "Add(" [e1;e2]
-  | Mul(e1,e2) -> aff_aux "Mul(" [e1;e2]
-  | Min(e1,e2) -> aff_aux "Min(" [e1;e2]
-  | And(e1,e2) -> aff_aux "And(" [e1;e2]
-  | Or(e1,e2) -> aff_aux "Or(" [e1;e2]
-  | Not e -> aff_aux "Not(" [e]
-  | IfThenElse(e1,e2,e3) -> aff_aux "IfThenElse(" [e1;e2;e3]
-  | PrInt e -> aff_aux "PrInt(" [e]
-  | LetIn(e1,e2,e3) -> aff_aux2 "LetIn(" [e1] [e2;e3]
-  | LetRecIn(e1,e2,e3) -> aff_aux "LetRecIn(" [e1;e2;e3]
-  | Fun(e1,e2) -> aff_aux "Fun("[e1;e2]
-  | FunCall(e1,e2) -> aff_aux "FunCall(" [e1;e2]
-  | Ref e -> aff_aux "Ref(" [e]
-  | Access e -> aff_aux "Access(" [e]
-  | Assign(e1,e2) -> aff_aux "Assign(" [e1;e2]
-  | Uplet(e) -> aff_aux "Uplet(" e
-  | For(e1, e2, e3, e4) -> aff_aux "For(" [e1;e2;e3;e4]
-  | While(b, e) -> aff_aux "While(" [b;e]
-  | List l -> aff_aux "List(" l
-
+  | Add(e1,e2) -> aff_aux "Add(" [e1;e2] string_of_expr ^ ")"
+  | Mul(e1,e2) -> aff_aux "Mul(" [e1;e2] string_of_expr ^ ")"
+  | Div(e1,e2) -> aff_aux "Div(" [e1;e2] string_of_expr ^ ")"
+  | Min(e1,e2) -> aff_aux "Min(" [e1;e2] string_of_expr ^ ")"
+  | And(e1,e2) -> aff_aux "And(" [e1;e2] string_of_expr ^ ")"
+  | Or(e1,e2) -> aff_aux "Or(" [e1;e2] string_of_expr ^ ")"
+  | Not e -> aff_aux "Not(" [e] string_of_expr ^ ")"
+  | Equal(e1,e2) -> aff_aux "Equal(" [e1;e2] string_of_expr ^ ")"
+  | Leq(e1,e2) -> aff_aux "Leq(" [e1;e2] string_of_expr ^ ")"
+  | Lt(e1,e2) -> aff_aux "Lt(" [e1;e2] string_of_expr ^ ")"
+  | IfThenElse(e1,e2,e3) -> aff_aux "IfThenElse(" [e1;e2;e3] string_of_expr ^ ")"
+  | PrInt e -> aff_aux "PrInt(" [e] string_of_expr ^ ")"
+  | LetIn(e1,e2,e3,_) -> (aff_aux "LetIn(" [e1] string_of_motif) ^ (aff_aux "" [e2;e3] string_of_expr) ^ ")"
+  | LetRecIn(e1,e2,e3,_) -> aff_aux "LetRecIn(" [e1;e2;e3] string_of_expr ^ ")"
+  | Fun(e1,e2) -> aff_aux "Fun("[e1;e2] string_of_expr ^ ")"
+  | FunCall(e1,e2) -> aff_aux "FunCall(" [e1;e2] string_of_expr ^ ")"
+  | Ref e -> aff_aux "Ref(" [e] string_of_expr ^ ")"
+  | Access e -> aff_aux "Access(" [e] string_of_expr ^ ")"
+  | Assign(e1,e2) -> aff_aux "Assign(" [e1;e2] string_of_expr ^ ")"
+  | Uplet(e) -> aff_aux "Uplet(" e string_of_expr ^ ")"
+  | For(e1, e2, e3, e4) -> aff_aux "For(" [e1;e2;e3;e4] string_of_expr ^ ")"
+  | While(b, e) -> aff_aux "While(" [b;e] string_of_expr ^ ")"
+  | List l -> aff_aux "List(" l string_of_expr ^ ")"
+  | MatchWith(e, l) -> "MatchWith(" ^ (string_of_expr e) ^ "," ^ (aff_aux "" l (fun (m, e) -> (string_of_motif m) ^ " -> " ^ (string_of_expr e))) ^ ")"
  
 let affiche_expr e = print_string (string_of_expr e)
 
@@ -101,7 +109,7 @@ type valeur =
 |VI of int
 |VB of bool
 |VFun of (valeur->valeur)
-|VRef of valeur
+|VRef of string
 |VUplet of valeur list
 |VList of valeur list
 
@@ -124,10 +132,10 @@ let cast_fun (v : valeur) : valeur -> valeur = match v with
   |VFun (f) -> f
 |_ -> raise (NotAFunction v)
 
-let cast_ref (v : valeur) : valeur = match v with
+(*let cast_ref (v : valeur) : valeur = match v with
   |VRef r -> r
   |_ -> raise (NotARef v)
-
+*)
 
 let cast_string (v : valeur) : string = 
   let rec getcontent (v : valeur) : string = (match v with
@@ -135,8 +143,9 @@ let cast_string (v : valeur) : string =
     |VB b -> string_of_bool b
     |VUnit -> "()"
     |VFun _ -> "<fun>"
-    |VRef r -> "{contents = " ^ (getcontent r) ^ "}"
+    |VRef r -> "{contents = " ^ r ^ "}"
     |VUplet l -> let (_, upletv) = (uplethelper l ",") in "(" ^ upletv ^ ")"
+    |VList [] -> "[]"
     |VList l -> let (_, upletv) = (uplethelper l "::") in "(" ^ upletv ^ ")"
   )
   and uplethelper (l : valeur list) (separator : string) : (string * string) = let (uplett, upletv, _) = (List.fold_left 
@@ -158,6 +167,7 @@ let cast_string (v : valeur) : string =
   |VRef _ -> "- : valeur ref = " ^ (getcontent v)
   |VUplet l -> let (uplett, upletv) = uplethelper l "," in
     "- : " ^ uplett ^ " = (" ^ upletv ^ ")"
+  |VList [] -> "- : valeur list = []"
   |VList l -> let (_, upletv) = uplethelper l "::" in
     "- : valeur list = " ^ upletv ^ "::[]"
 
@@ -188,17 +198,36 @@ let findVarValue (var : string) (ctx : env) : valeur =
 
 exception NotAVariable of string
 (*Gère l'erreur où on attendrait un nom de variable mais où une autre expression est donnée*)
+exception NotComparable of valeur * valeur
+let rec comparaison (v1 : valeur) (v2 : valeur) : bool = match v1, v2 with
+  |VI k1, VI k2 -> k1 < k2
+  |VB b1, VB b2 -> b1 < b2
+  |VUplet l1, VUplet l2 -> if List.length l1 <> List.length l2 then raise(NotComparable(v1,v2)) 
+  else List.fold_left2 (fun _ v1 v2 -> if v1 <> v2 then comparaison v1 v2 else false) false l1 l2
+  |VList l1, VList l2 -> (match l1 with (*cf comparaison des types algébriques*)
+      |[] -> true
+      |p1::q1-> (match l2 with
+              |[] -> false
+              |p2::q2-> if p1 <> p2 then comparaison p1 p2 else comparaison (VList q1) (VList q2)
+      )
+  )
+  |_, _ -> raise (NotComparable(v1, v2))
+
 
 (* �valuation d'une expression en une valeur *)
 let eval (e : expr) : valeur = 
   (*ctx représente le contexte général d'éxécution, en opposition au contexte de chaque fonction*)
   let globalctx : env = Hashtbl.create 20 in
   let basectx : env = Hashtbl.create 20 in
+  let deep = ref false in
+  let refnumerotation = ref 0 in
   let rec eval_aux (ctx : env) (e : expr) : valeur = 
-    if testmode 
-      then (affiche_expr e ; print_newline(); 
-    print_string "global ctx : " ; print_newline() ; affiche_env globalctx ; 
-    print_string ("local ctx :") ; print_newline() ; affiche_env ctx);
+    if !debug_mode 
+      then (print_string "current expr : " ; affiche_expr e ; print_newline()); 
+    if !debug_mode 
+    then
+      (print_string "global ctx : " ; print_newline() ; affiche_env globalctx ; 
+      print_string ("local ctx :") ; print_newline() ; affiche_env ctx ; print_newline()) ; 
     try begin
     match e with
     | Cst k -> VI k
@@ -207,22 +236,30 @@ let eval (e : expr) : valeur =
     | Var va -> findVarValue va ctx      
     | Add(e1,e2) -> VI (cast_int (eval_aux ctx e1) + cast_int (eval_aux ctx e2))
     | Mul(e1,e2) -> VI (cast_int (eval_aux ctx e1) * cast_int (eval_aux ctx e2))
+    | Div(e1,e2) -> VI (cast_int (eval_aux ctx e1) / cast_int (eval_aux ctx e2))
     | Min(e1,e2) -> VI (cast_int (eval_aux ctx e1) - cast_int (eval_aux ctx e2))
     | And(e1,e2) -> VB (cast_bool (eval_aux ctx e1) && cast_bool (eval_aux ctx e2))
     | Or(e1,e2) -> VB (cast_bool (eval_aux ctx e1) || cast_bool (eval_aux ctx e2))
     | Not e -> VB (not (cast_bool (eval_aux ctx e)))
+    | Equal(e1,e2) -> VB (eval_aux ctx e1 = eval_aux ctx e2)
+    | Leq(e1,e2) -> let v1,v2=eval_aux ctx e1, eval_aux ctx e2 in VB(v1 = v2 || (comparaison v1 v2))
+    | Lt(e1,e2) -> let v1,v2=eval_aux ctx e1, eval_aux ctx e2 in VB(comparaison v1 v2)
     | IfThenElse(e1,e2,e3) -> if cast_bool (eval_aux ctx e1) then eval_aux ctx e2 else eval_aux ctx e3
     | PrInt e -> let i = cast_int(eval_aux ctx e) in VI(prInt i)
     
-    | LetIn(m,e2,e3) ->
+    | LetIn(m,e2,e3, b) ->
+      if b && !deep then failwith "let a = b ;; utilisé à l'intérieur d'une expression" 
+      else let changed = not !deep in if changed then deep := true;
       if m = MVar "_" || m = MVar "()"  
         then let _ = eval_aux ctx e2 in eval_aux ctx e3
         else 
           (absorbMotif ctx m (eval_aux ctx e2);
           let res = eval_aux ctx e3 in
-          unabsorbMotif ctx m ; res)
+          unabsorbMotif ctx m ; if changed then deep := false; res)
 
-    | LetRecIn(e1,e2,e3) ->
+    | LetRecIn(e1,e2,e3, b) ->
+      if b && !deep then failwith "let a = b ;; utilisé à l'intérieur d'une expression" 
+      else let changed = not !deep in if changed then deep := true;
       if e1 = Var "_" || e1 = Var "()"
         then failwith "Error : Only variables are allowed as left-hand side of 'let rec'"
       else let funname = getVarName e1 ctx in 
@@ -231,7 +268,7 @@ let eval (e : expr) : valeur =
           let variable = getVarName v ctx in
           Hashtbl.add ctx funname (VFun(defineFunction funname variable e ctx));
           let res = eval_aux ctx e3
-          in Hashtbl.remove ctx funname; res
+          in Hashtbl.remove ctx funname; if changed then deep := false ; res
         | _ -> failwith "Error : This kind of expression is not allowed as right-hand side of 'let rec'")
 
 
@@ -246,22 +283,27 @@ let eval (e : expr) : valeur =
       let v = eval_aux ctx value in
       f v
 
-    | Ref e -> VRef(eval_aux ctx e)
+    | Ref e -> Hashtbl.add globalctx (string_of_int !refnumerotation) (eval_aux ctx e) ;
+      refnumerotation := !refnumerotation + 1;
+      VRef(string_of_int (!refnumerotation-1))
 
-    | Access(e) -> findVarValue (getVarName e globalctx) globalctx
+    | Access(e) -> (match eval_aux ctx e with
+      |VRef(s) -> findVarValue s globalctx
+      |_ -> failwith "expected to ! a ref"
+    )
 
     | Assign(var,nvalue) ->
       let varname = getVarName var globalctx in
       let nv = eval_aux ctx nvalue in
-      Hashtbl.replace globalctx varname nv;
       (try 
         let v = findVarValue varname ctx in
         match v with
-        |VRef _ -> Hashtbl.replace ctx varname (VRef nv)
-        |_ -> ()
+        |VRef s -> Hashtbl.replace globalctx s (nv)
+        |_ -> failwith (varname ^ " isn't a ref ")
+      
       with
-      |Not_found -> ());
-
+      |Not_found -> raise (UnboundVariable varname)
+      );
       VUnit
 
     | Uplet(elist) -> VUplet(List.map (eval_aux ctx) elist)
@@ -284,6 +326,18 @@ let eval (e : expr) : valeur =
       VUnit
     | List(l) -> VList(List.map (eval_aux ctx) l)
 
+    | MatchWith(e, l) -> 
+      let v = eval_aux ctx e in
+      let rec match_aux (l : (motif * expr) list) : valeur = match l with
+      |[] -> failwith "Match error : no matching case"
+      |(m, e)::q -> if canabsorbMotif m v then 
+        (absorbMotif ctx m v;
+        let res = eval_aux ctx e in
+        unabsorbMotif ctx m;
+        res)
+        else match_aux q
+      in match_aux l
+
   end
     with 
     |NotAnInt v -> castError e (cast_string v) "int"
@@ -298,10 +352,8 @@ let eval (e : expr) : valeur =
   |Var v -> v
   |_ -> raise (NotAVariable (cast_string(eval_aux ctx variable)))
   
-  and absorbMotif (ctx : env) (m : motif) (v : valeur) = match m with
+  and absorbMotif (ctx : env) (m : motif) (v : valeur) : unit = match m with
   |MVar va -> (*cas classique let v = e2 in e3*)
-  (if (is_ref v)
-    then Hashtbl.add globalctx va (cast_ref v)) ;
   Hashtbl.add ctx va v
   |MUplet(l1) -> (match v with (*cas uplet let (v1, v2,...) = (e1,e2,...) = e3*)
       |VUplet(l2)-> (try
@@ -322,16 +374,25 @@ let eval (e : expr) : valeur =
         List.iter (unabsorbMotif ctx) l1
     |MNil -> ()
     |MCons(m, l) -> unabsorbMotif ctx m ; unabsorbMotif ctx l
+
+  and canabsorbMotif (m : motif) (v : valeur) : bool = match m with
+  |MVar _ -> true
+  |MUplet(l1) -> (match v with (*cas uplet let (v1, v2,...) = (e1,e2,...) = e3*)
+      |VUplet(l2)-> (try
+        List.fold_left2 (fun accu p1 p2 -> accu && (canabsorbMotif p1 p2)) true l1 l2 ;
+      with
+      |Invalid_argument _ -> false)
+      |_ -> false)
+  |MNil -> v = VList([])
+  |MCons(m, l) -> (match v with
+      |VList(p::q) -> canabsorbMotif m p && canabsorbMotif l (VList q)
+      |_ -> false)
     
   (*|_ -> failwith "Invalid left-hand side for a 'let in'"*)
-  
-
 
   (*On crée une valeur -> valeur par curryfication*)
   and defineFunction (funname : string) (varname : string) (e : expr) (ctx : env) (v : valeur) : valeur = 
     if funname <> "" then Hashtbl.add ctx funname (VFun(defineFunction funname varname e ctx));
-    (if (is_ref v)
-      then Hashtbl.add globalctx varname (cast_ref v)) ;
     Hashtbl.add ctx varname v;
     let res = eval_aux ctx e in
     Hashtbl.remove ctx varname;

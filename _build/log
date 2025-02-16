@@ -3,7 +3,7 @@
 # Shared cache: enabled-except-user-rules
 # Shared cache location: /home/thomas/.cache/dune/db
 # Workspace root: /home/thomas/ProFon
-# Auto-detected concurrency: 10
+# Auto-detected concurrency: 4
 # Dune context:
 #  { name = "default"
 #  ; kind = "default"
@@ -13,11 +13,11 @@
 #  ; build_dir = In_build_dir "default"
 #  ; instrument_with = []
 #  }
-$ /usr/bin/ocamlc.opt -config > /tmp/dune_8bfad2_output
-$ (cd _build/.sandbox/61f480d43e0a8a41d6438075dfcd3d3a/default && /home/thomas/.opam/default/bin/menhir --dump lib/parser.mly --base lib/parser --infer-write-query lib/parser__mock.ml.mock)
+$ /usr/bin/ocamlc.opt -config > /tmp/dune_ac4557_output
+$ (cd _build/.sandbox/5899be91d60dc3d1b1c92bb761f9221e/default && /home/thomas/.opam/default/bin/menhir --dump lib/parser.mly --base lib/parser --infer-write-query lib/parser__mock.ml.mock)
 $ (cd _build/default && /usr/bin/ocamldep.opt -modules -impl lib/parser__mock.ml.mock) > _build/default/lib/.lib.objs/parser__mock.impl.d
-$ (cd _build/.sandbox/8955d3eba0bb325fa995570a15d7be1e/default && /usr/bin/ocamlc.opt -w @1..3@5..28@31..39@43@46..47@49..57@61..62@67@69-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -I lib/.lib.objs/byte -open Lib -short-paths -i -impl lib/parser__mock.ml.mock) > _build/.sandbox/8955d3eba0bb325fa995570a15d7be1e/default/lib/parser__mock.mli.inferred
-$ (cd _build/.sandbox/d8a48999055c68a68ec07dbfae472518/default && /home/thomas/.opam/default/bin/menhir --dump --explain lib/parser.mly --base lib/parser --infer-read-reply lib/parser__mock.mli.inferred)
+$ (cd _build/.sandbox/607646cba6a87eabb67ee3a7fadcdb69/default && /usr/bin/ocamlc.opt -w @1..3@5..28@31..39@43@46..47@49..57@61..62@67@69-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -I lib/.lib.objs/byte -open Lib -short-paths -i -impl lib/parser__mock.ml.mock) > _build/.sandbox/607646cba6a87eabb67ee3a7fadcdb69/default/lib/parser__mock.mli.inferred
+$ (cd _build/.sandbox/cdec1b9ca21c9101354ba2ff9fdf6ecb/default && /home/thomas/.opam/default/bin/menhir --dump --explain lib/parser.mly --base lib/parser --infer-read-reply lib/parser__mock.mli.inferred)
 $ (cd _build/default && /usr/bin/ocamldep.opt -modules -impl lib/parser.ml) > _build/default/lib/.lib.objs/lib__Parser.impl.d
 $ (cd _build/default && /usr/bin/ocamlc.opt -w @1..3@5..28@31..39@43@46..47@49..57@61..62@67@69-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -bin-annot -I lib/.lib.objs/byte -intf-suffix .ml -no-alias-deps -opaque -open Lib -o lib/.lib.objs/byte/lib__Parser.cmo -c -impl lib/parser.ml)
 $ (cd _build/default && /usr/bin/ocamlc.opt -w @1..3@5..28@31..39@43@46..47@49..57@61..62@67@69-40 -strict-sequence -strict-formats -short-paths -keep-locs -g -a -o lib/lib.cma lib/.lib.objs/byte/lib.cmo lib/.lib.objs/byte/lib__Expr.cmo lib/.lib.objs/byte/lib__Parser.cmo lib/.lib.objs/byte/lib__Lexer.cmo)

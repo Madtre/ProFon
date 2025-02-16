@@ -1,6 +1,8 @@
 type token =
-    WHILE
+    WITH
+  | WHILE
   | VAR of string
+  | UNDERPLUS
   | TO
   | TIMES
   | THEN
@@ -16,20 +18,30 @@ type token =
   | OR
   | NOT
   | MINUS
+  | MATCH
+  | LT
   | LPAREN
   | LET
+  | LEQ
   | LBRACKET
   | INT of int
   | IN
   | IF
+  | GT
+  | GEQ
+  | FUNCTION
   | FUN
   | FOR
   | EQUAL
-  | EOL
+  | EOF
   | ELSE
+  | DOUBLESEPARATOR
   | DONE
   | DO
+  | DIV
+  | DIFF
   | COMMA
+  | CASE
   | BOOL of bool
   | BANG
   | ASSIGN
@@ -37,17 +49,22 @@ type token =
 val aux : Expr.expr -> Expr.expr -> Expr.expr
 val upletlist : Expr.expr -> Expr.expr -> Expr.expr
 val mupletlist : Expr.motif -> Expr.motif -> Expr.motif
+val matchwithconstr : Expr.motif * Expr.expr -> Expr.expr -> Expr.expr
+val varanonyme : int ref
 val menhir_begin_marker : int
 val xv_value : Expr.expr
 val xv_uplets : Expr.expr
 val xv_smotif : Expr.motif
+val xv_sexprlist : Expr.expr
 val xv_sexpr : Expr.expr
 val xv_muplets : Expr.motif
 val xv_multivariables : Expr.expr
 val xv_motif : Expr.motif
-val xv_mlist : Expr.motif
 val xv_main : Expr.expr
+val xv_listexprbracket : Expr.expr
 val xv_listexpr : Expr.expr
+val xv_exprseq : Expr.expr
 val xv_expression : Expr.expr
+val xv_cases : Expr.expr
 val xv_applic : Expr.expr
 val menhir_end_marker : int

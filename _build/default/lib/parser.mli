@@ -2,8 +2,10 @@
 (* The type of tokens. *)
 
 type token = 
+  | WITH
   | WHILE
   | VAR of (string)
+  | UNDERPLUS
   | TO
   | TIMES
   | THEN
@@ -19,20 +21,30 @@ type token =
   | OR
   | NOT
   | MINUS
+  | MATCH
+  | LT
   | LPAREN
   | LET
+  | LEQ
   | LBRACKET
   | INT of (int)
   | IN
   | IF
+  | GT
+  | GEQ
+  | FUNCTION
   | FUN
   | FOR
   | EQUAL
-  | EOL
+  | EOF
   | ELSE
+  | DOUBLESEPARATOR
   | DONE
   | DO
+  | DIV
+  | DIFF
   | COMMA
+  | CASE
   | BOOL of (bool)
   | BANG
   | ASSIGN
