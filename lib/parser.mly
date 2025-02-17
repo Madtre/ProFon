@@ -7,7 +7,7 @@ open Expr   (* rappel: dans expr.ml:
 (*utile pour les fonctions à n variables*)
 let rec aux (m : expr) (e : expr) : expr = (*affiche_expr m; affiche_expr e; print_newline() ;*) match m with
 |Fun(v, t) -> Fun(v, aux t e)
-|Var v -> Fun(Var v, e)
+|LetIn (v,Unit,Unit,_) -> Fun(v, e)
 |_ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction"
 
 let upletlist (e : expr) (u : expr) : expr = match u with
@@ -123,10 +123,6 @@ applic:
 | LPAREN e=exprseq RPAREN s=sexpr { FunCall(e,s) }
 
 
-sexprlist:
-| v = value                  { v }
-| v = VAR                    { Var(v) }
-| LPAREN e=exprseq RPAREN { e }       
 
 sexpr:
 | v = value                  { v }
@@ -136,9 +132,10 @@ sexpr:
 | LBRACKET l = listexprbracket               { l }
 | LBRACKET RBRACKET                    {List([])}
 
+
 multivariables:
-| v = VAR m = multivariables { Fun(Var(v), m)}
-| v = VAR {Var(v)}
+| mot=smotif m = multivariables { Fun(mot, m)}
+| mot=smotif {LetIn(mot, Unit, Unit,false)} (*Pour des raisons de typage on utilise cette structure, elle n'a aucun sens en réalité*)
 
 muplets:
 | m=smotif COMMA u = muplets {mupletlist m u} 
@@ -146,7 +143,7 @@ muplets:
 
 smotif :
 |v = VAR                            {MVar(v)}
-(*|LPAREN m=smotif COMMA u=muplets     {mupletlist m u}*)
+|LBRACKET RBRACKET                  {MNil}
 |LPAREN m = motif RPAREN            {m}
 
 motif:
@@ -162,6 +159,11 @@ uplets:
 | e=sexpr                  {Uplet([e])}
 | a=applic e=sexpr                 {Uplet([FunCall(a,e)])}
 
+sexprlist:
+| v = value                  { v }
+| v = VAR                    { Var(v) }
+| LPAREN e=exprseq RPAREN { e }       
+
 listexpr:
 | e = sexprlist QUATROSPUNTOS l = listexpr { upletlist e l }
 | LBRACKET RBRACKET                    { List([]) }
@@ -174,11 +176,10 @@ cases :
 | m = motif RIGHTARROW e = exprseq CASE c = cases    { matchwithconstr (m,e) c }
 | m = motif RIGHTARROW e = exprseq              { MatchWith(Unit, [(m,e)]) } (*On met Unit ici tant qu'on ne sait pas ce qu'on va match*)
 
+
 expression:			   
    | v=value                               { v }
 
-   (*| LPAREN e=expression RPAREN            { e } *)
-   (*| e1=expression SEPARATOR e2=expression { LetIn(MVar "_", e1, e2, false) }*)
    | LPAREN e=exprseq RPAREN               { e }
 
 
@@ -201,18 +202,18 @@ expression:
    | IF e1=expression THEN e2=expression ELSE e3=expression  { IfThenElse(e1,e2,e3) }
    | IF e1=expression THEN e2=expression                     { IfThenElse(e1,e2,Unit)}
    
-   | LET m = motif EQUAL e1 = expression IN e2=exprseq { LetIn(m, e1, e2, false) }
-   | LET m = motif EQUAL e1 = expression DOUBLESEPARATOR e2=expression { LetIn(m, e1, e2, true) }
-   | LET REC m = motif EQUAL e=expression IN e2=exprseq          { LetIn(m, e, e2, false) } (*Rec utilisé inutilement*)
+   | LET m = motif EQUAL e1 = exprseq IN e2=exprseq { LetIn(m, e1, e2, false) }
+   | LET m = motif EQUAL e1 = exprseq DOUBLESEPARATOR e2=expression { LetIn(m, e1, e2, true) }
+   | LET REC m = motif EQUAL e=exprseq IN e2=exprseq          { LetIn(m, e, e2, false) } (*Rec utilisé inutilement*)
    
    (*| LET LPAREN e=expression COMMA u=uplets EQUAL e1 = expression IN e2=expression { LetIn(upletlist e u, e1, e2) }*)
    
    (*Je ne suis pas convaincu de l'efficacité de cette méthode, mais elle a le mérite de fonctionner*)
-   | FUN v=multivariables RIGHTARROW e=expression                { aux v e}
-   | LET v = VAR vs = multivariables EQUAL e=expression          { LetIn(MVar v, aux vs e, Var v, false) } 
-   | LET REC v = VAR vs = multivariables EQUAL e=expression          { LetRecIn(Var v, aux vs e, Var v, false) }
-   | LET v = VAR vs = multivariables EQUAL e=expression IN e2=exprseq          { LetIn(MVar v, aux vs e, e2, false) }
-   | LET REC v = VAR vs = multivariables EQUAL e=expression IN e2=exprseq          { LetRecIn(Var v, aux vs e, e2, false) }
+   | FUN v=multivariables RIGHTARROW e=exprseq                { aux v e}
+   | LET v = VAR vs = multivariables EQUAL e=exprseq          { LetIn(MVar v, aux vs e, Var v, false) } 
+   | LET REC v = VAR vs = multivariables EQUAL e=exprseq          { LetRecIn(Var v, aux vs e, Var v, false) }
+   | LET v = VAR vs = multivariables EQUAL e=exprseq IN e2=exprseq          { LetIn(MVar v, aux vs e, e2, false) }
+   | LET REC v = VAR vs = multivariables EQUAL e=exprseq IN e2=exprseq          { LetRecIn(Var v, aux vs e, e2, false) }
 
 
    | MINUS e=expression                    { Min(Cst 0, e) } (* le moins unaire *)  
@@ -238,8 +239,8 @@ expression:
    | MATCH e = expression WITH CASE m = cases                       { match m with | MatchWith(_, l) -> MatchWith(e,l) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'un match" }
 
 
-   | FUNCTION m = cases { match m with | MatchWith(_, l) -> varanonyme := !varanonyme + 1 ; Fun(Var ("$" ^ string_of_int !varanonyme), MatchWith(Var ("$" ^ string_of_int !varanonyme),l)) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction par filtrage" }
-   | FUNCTION CASE m = cases { match m with | MatchWith(_, l) -> varanonyme := !varanonyme + 1 ; Fun(Var ("$" ^ string_of_int !varanonyme), MatchWith(Var ("$" ^ string_of_int !varanonyme),l)) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction par filtrage" }
+   | FUNCTION m = cases { match m with | MatchWith(_, l) -> varanonyme := !varanonyme + 1 ; Fun(MVar ("$" ^ string_of_int !varanonyme), MatchWith(Var ("$" ^ string_of_int !varanonyme),l)) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction par filtrage" }
+   | FUNCTION CASE m = cases { match m with | MatchWith(_, l) -> varanonyme := !varanonyme + 1 ; Fun(MVar ("$" ^ string_of_int !varanonyme), MatchWith(Var ("$" ^ string_of_int !varanonyme),l)) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction par filtrage" }
 
 
    | a=applic                             { a }

@@ -105,8 +105,7 @@ let eval (e : expr) : valeur =
       else let funname = getVarName e1 ctx in 
         (match e2 with
         | Fun(v, e) -> 
-          let variable = getVarName v ctx in
-          Hashtbl.add ctx funname (VFun(defineFunction funname variable e ctx));
+          Hashtbl.add ctx funname (VFun(defineFunction funname v e ctx));
           let res = eval_aux ctx e3
           in Hashtbl.remove ctx funname; if changed then deep := false ; res
         | _ -> failwith "Error : This kind of expression is not allowed as right-hand side of 'let rec'")
@@ -114,9 +113,8 @@ let eval (e : expr) : valeur =
 
 
     | Fun(e1,e2) -> 
-      let va = getVarName e1 ctx in
       let fctx = Hashtbl.copy ctx in
-      VFun(defineFunction "" va e2 fctx)
+      VFun(defineFunction "" e1 e2 fctx)
 
     | FunCall(func, value) -> 
       let f = cast_fun(eval_aux ctx func) in
@@ -194,6 +192,7 @@ let eval (e : expr) : valeur =
   
   and absorbMotif (ctx : env) (m : motif) (v : valeur) : unit = match m with
   |MVar va -> (*cas classique let v = e2 in e3*)
+  if va <> "_" then
   Hashtbl.add ctx va v
   |MUplet(l1) -> (match v with (*cas uplet let (v1, v2,...) = (e1,e2,...) = e3*)
       |VUplet(l2)-> (try
@@ -231,11 +230,11 @@ let eval (e : expr) : valeur =
   (*|_ -> failwith "Invalid left-hand side for a 'let in'"*)
 
   (*On crée une valeur -> valeur par curryfication*)
-  and defineFunction (funname : string) (varname : string) (e : expr) (ctx : env) (v : valeur) : valeur = 
-    if funname <> "" then Hashtbl.add ctx funname (VFun(defineFunction funname varname e ctx));
-    Hashtbl.add ctx varname v;
+  and defineFunction (funname : string) (variableshape : motif) (e : expr) (ctx : env) (v : valeur) : valeur = 
+    if funname <> "" then Hashtbl.add ctx funname (VFun(defineFunction funname variableshape e ctx));
+    absorbMotif ctx variableshape v;
     let res = eval_aux ctx e in
-    Hashtbl.remove ctx varname;
+    unabsorbMotif ctx variableshape;
     if funname <> "" then Hashtbl.remove ctx funname;
     res
 

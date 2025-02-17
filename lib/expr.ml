@@ -3,8 +3,6 @@ let debug_mode = ref false
 let src_mode = ref false
 
 
-let prInt x = print_int x;print_newline(); x;;
-
 
 (*A defaut de mieux pour l'instant, on log les warnings avec un print*)
 let warning (mess : string) = if !debug_mode then (print_string "Warning : "; print_string mess; print_newline());;
@@ -36,7 +34,7 @@ type expr =
   | PrInt of expr
   | LetIn of motif*expr*expr*bool
   | LetRecIn of expr*expr*expr*bool
-  | Fun of expr*expr
+  | Fun of motif*expr
   | FunCall of expr*expr
   | Ref of expr
   | Access of expr

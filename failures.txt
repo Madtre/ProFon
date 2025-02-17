@@ -1,8 +1,6 @@
-T4-References/seq-basic.ml
 T5-Exceptions/raise2.ml
 T5-Exceptions/raise-fun.ml
 T5-Exceptions/raise.ml
-T6-Couples/tuples_fun.ml
 T7-Listes/comma-list.ml
 T7-Listes/minus-list.ml
 T7-Listes/plus-list.ml
