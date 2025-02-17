@@ -1,5 +1,6 @@
 open Lib
 open Expr
+open Interprete
 
 
 (* "incantations" qu'il n'est pas n�cessaire de comprendre dans un premier
@@ -31,12 +32,7 @@ let recupere_entree () =
 (* le traitement d'une expression en entr�e *)   
 let execute e =
   begin
-    if !Expr.src_mode then (print_string "Arbre de l'expr : ";
-    affiche_expr e; (* on n'affiche plus e *)
-    print_newline());
-    let v =  eval e in if !Expr.debug_mode then ( (* on �value e *)
-    affiche_valeur v;
-    print_newline()) else ();
+    let _ =  eval e in ()
   end
 
 (* la fonction principale *)
