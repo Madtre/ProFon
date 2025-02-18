@@ -9,14 +9,9 @@ let cast_bool (v : valeur) : bool = match v with
   |VB b -> b
   |_ -> raise (NotABool v)
 
-let cast_fun (v : valeur) : valeur -> valeur = match v with
+let cast_fun (v : valeur) : cont -> valeur -> valeur = match v with
   |VFun (f) -> f
 |_ -> raise (NotAFunction v)
-
-(*let cast_ref (v : valeur) : valeur = match v with
-  |VRef r -> r
-  |_ -> raise (NotARef v)
-*)
 
 
 let is_ref (v : valeur) : bool = match v with
@@ -61,42 +56,45 @@ let eval (e : expr) : valeur =
   let basectx : env = Hashtbl.create 20 in
   let deep = ref false in
   let refnumerotation = ref 0 in
-  let rec eval_aux (ctx : env) (e : expr) : valeur = 
+  let rec eval_aux (ctx : env) (e : expr) (k : cont): valeur = 
     if !debug_mode 
       then (print_string "current expr : " ; affiche_expr e ; print_newline()); 
     if !debug_mode 
     then
       (print_string "global ctx : " ; print_newline() ; affiche_env globalctx ; 
-      print_string ("local ctx :") ; print_newline() ; affiche_env ctx ; print_newline()) ; 
+      print_string ("local ctx :") ; print_newline() ; affiche_env ctx ; print_newline()) ;
     try begin
     match e with
-    | Cst k -> VI k
-    | Bool b -> VB b
-    | Unit -> VUnit
-    | Var va -> findVarValue va ctx      
-    | Add(e1,e2) -> VI (cast_int (eval_aux ctx e1) + cast_int (eval_aux ctx e2))
-    | Mul(e1,e2) -> VI (cast_int (eval_aux ctx e1) * cast_int (eval_aux ctx e2))
-    | Div(e1,e2) -> VI (cast_int (eval_aux ctx e1) / cast_int (eval_aux ctx e2))
-    | Min(e1,e2) -> VI (cast_int (eval_aux ctx e1) - cast_int (eval_aux ctx e2))
-    | And(e1,e2) -> VB (cast_bool (eval_aux ctx e1) && cast_bool (eval_aux ctx e2))
-    | Or(e1,e2) -> VB (cast_bool (eval_aux ctx e1) || cast_bool (eval_aux ctx e2))
-    | Not e -> VB (not (cast_bool (eval_aux ctx e)))
-    | Equal(e1,e2) -> VB (eval_aux ctx e1 = eval_aux ctx e2)
-    | Leq(e1,e2) -> let v1,v2=eval_aux ctx e1, eval_aux ctx e2 in VB(v1 = v2 || (comparaison v1 v2))
-    | Lt(e1,e2) -> let v1,v2=eval_aux ctx e1, eval_aux ctx e2 in VB(comparaison v1 v2)
-    | IfThenElse(e1,e2,e3) -> if cast_bool (eval_aux ctx e1) then eval_aux ctx e2 else eval_aux ctx e3
-    | PrInt e -> let i = cast_int(eval_aux ctx e) in VI(prInt i)
+    | Cst c -> k (VI c)
+    | Bool b -> k (VB b)
+    | Unit -> k (VUnit)
+    | Var va -> k (findVarValue va ctx)      
+
+    | Add(e1,e2) -> eval_aux ctx e2 (fun n2 -> eval_aux ctx e1 (fun n1 -> k (VI(cast_int n1 + cast_int n2))))
+    | Min(e1,e2) -> eval_aux ctx e2 (fun n2 -> eval_aux ctx e1 (fun n1 -> k (VI(cast_int n1 - cast_int n2))))
+    | Mul(e1,e2) -> eval_aux ctx e2 (fun n2 -> eval_aux ctx e1 (fun n1 -> k (VI(cast_int n1 * cast_int n2))))
+    | Div(e1,e2) -> eval_aux ctx e2 (fun n2 -> eval_aux ctx e1 (fun n1 -> k (VI(cast_int n1 / cast_int n2))))
+
+    | And(e1,e2) -> eval_aux ctx e1 (fun v1 -> let b1 = cast_bool v1 in if not b1 then k (VB false) else 
+                    eval_aux ctx e2 (fun v2 -> k v2))
+    | Or(e1,e2) ->  eval_aux ctx e1 (fun v1 -> let b1 = cast_bool v1 in if b1 then k (VB true) else 
+                    eval_aux ctx e2 (fun v2 -> k v2))
+    | Not e -> eval_aux ctx e (fun v -> k (VB(not (cast_bool v))))
+
+    | Equal(e1,e2) -> eval_aux ctx e2 (fun v2 -> eval_aux ctx e1 (fun v1 -> k (VB(v1 = v2))))
+    | Lt(e1,e2) -> eval_aux ctx e2 (fun v2 -> eval_aux ctx e1 (fun v1 -> k (VB(comparaison v1 v2))))
+    | Leq(e1,e2) -> eval_aux ctx e2 (fun v2 -> eval_aux ctx e1 (fun v1 -> k (VB(comparaison v1 v2 || v1 = v2))))
+    | IfThenElse(e1,e2,e3) -> 
+      eval_aux ctx e1 (fun v1 -> if cast_bool v1 then eval_aux ctx e2 k else eval_aux ctx e3 k)
+    
+    | PrInt e -> eval_aux ctx e (fun v -> k (VI (prInt (cast_int v))))
     
     | LetIn(m,e2,e3, b) ->
       if b && !deep then failwith "let a = b ;; utilisé à l'intérieur d'une expression" 
       else let changed = not !deep in if changed then deep := true;
-      if m = MVar "_" || m = MVar "()"  
-        then let _ = eval_aux ctx e2 in eval_aux ctx e3
-        else 
-          (absorbMotif ctx m (eval_aux ctx e2);
-          let res = eval_aux ctx e3 in
-          unabsorbMotif ctx m ; if changed then deep := false; res)
+      eval_aux ctx e2 (fun v2 -> absorbMotif ctx m v2 ; eval_aux ctx e3 (fun v3 -> unabsorbMotif ctx m ; if changed then deep := false ; k v3))
 
+    (*J'ai pas trop confiance en ça*)
     | LetRecIn(e1,e2,e3, b) ->
       if b && !deep then failwith "let a = b ;; utilisé à l'intérieur d'une expression" 
       else let changed = not !deep in if changed then deep := true;
@@ -106,33 +104,30 @@ let eval (e : expr) : valeur =
         (match e2 with
         | Fun(v, e) -> 
           Hashtbl.add ctx funname (VFun(defineFunction funname v e ctx));
-          let res = eval_aux ctx e3
-          in Hashtbl.remove ctx funname; if changed then deep := false ; res
+          eval_aux ctx e3 (fun res -> Hashtbl.remove ctx funname; if changed then deep := false ; k res)
         | _ -> failwith "Error : This kind of expression is not allowed as right-hand side of 'let rec'")
-
-
 
     | Fun(e1,e2) -> 
       let fctx = Hashtbl.copy ctx in
-      VFun(defineFunction "" e1 e2 fctx)
+      k (VFun(defineFunction "" e1 e2 fctx))
 
     | FunCall(func, value) -> 
-      let f = cast_fun(eval_aux ctx func) in
-      let v = eval_aux ctx value in
-      f v
+      eval_aux ctx value (fun v -> eval_aux ctx func (fun f -> k ((cast_fun f) k v)))
 
-    | Ref e -> Hashtbl.add globalctx (string_of_int !refnumerotation) (eval_aux ctx e) ;
+    | Ref e -> 
+      eval_aux ctx e (fun v -> Hashtbl.add globalctx (string_of_int !refnumerotation) v ;
       refnumerotation := !refnumerotation + 1;
-      VRef(string_of_int (!refnumerotation-1))
+      k (VRef(string_of_int (!refnumerotation-1))))
+      
 
-    | Access(e) -> (match eval_aux ctx e with
-      |VRef(s) -> findVarValue s globalctx
+    | Access(e) -> eval_aux ctx e (fun v -> match v with
+      |VRef(s) -> k (findVarValue s globalctx)
       |_ -> failwith "expected to ! a ref"
     )
 
     | Assign(var,nvalue) ->
       let varname = getVarName var globalctx in
-      let nv = eval_aux ctx nvalue in
+      eval_aux ctx nvalue (fun nv ->
       (try 
         let v = findVarValue varname ctx in
         match v with
@@ -141,12 +136,19 @@ let eval (e : expr) : valeur =
       
       with
       |Not_found -> raise (UnboundVariable varname)
-      );
-      VUnit
+      ); k VUnit)
 
-    | Uplet(elist) -> VUplet(List.map (eval_aux ctx) elist)
+    (*Il faut surement list.rev la elist*)
+    | Uplet(elist) -> 
+      let rec eval_uplet (elist : expr list) (vlist : valeur list)= ( match elist with
+      |[] -> failwith "les uplets vides n'existent pas"
+      |p::[] -> eval_aux ctx p (fun v -> k (VUplet(List.rev (v::vlist))))
+      |p::q -> eval_aux ctx p (fun v -> eval_uplet q (v::vlist))
+      )
+    in eval_uplet (List.rev elist) []
 
-    | For(v, emin, emax, e) -> let va = getVarName v ctx in
+    (* L'implémentation des for et while est laissé de côté pour le moment 
+    For(v, emin, emax, e) -> let va = getVarName v ctx in
       let imin = cast_int(eval_aux ctx emin) in
       let imax = cast_int(eval_aux ctx emax) in 
       for i = imin to imax do 
@@ -162,19 +164,29 @@ let eval (e : expr) : valeur =
         if eval_aux ctx e <> VUnit then warning ((string_of_expr e) ^ " this expression should have type unit")        
       done;      
       VUnit
-    | List(l) -> VList(List.map (eval_aux ctx) l)
+    *)
+    | For(_) -> k VUnit
+    | While(_) -> k VUnit
+
+    | List(l) -> 
+      let rec eval_list (elist : expr list) (vlist : valeur list)= ( match elist with
+      |[] -> failwith "les uplets vides n'existent pas"
+      |p::[] -> eval_aux ctx p (fun v -> k (VList(List.rev (v::vlist))))
+      |p::q -> eval_aux ctx p (fun v -> eval_list q (v::vlist))
+      )
+    in eval_list (List.rev l) []
 
     | MatchWith(e, l) -> 
-      let v = eval_aux ctx e in
+      eval_aux ctx e (fun v ->
+        
       let rec match_aux (l : (motif * expr) list) : valeur = match l with
       |[] -> failwith "Match error : no matching case"
       |(m, e)::q -> if canabsorbMotif m v then 
         (absorbMotif ctx m v;
-        let res = eval_aux ctx e in
-        unabsorbMotif ctx m;
-        res)
+        eval_aux ctx e (fun value -> unabsorbMotif ctx m ; k value)
+        )
         else match_aux q
-      in match_aux l
+      in match_aux l)
 
   end
     with 
@@ -188,7 +200,7 @@ let eval (e : expr) : valeur =
 
   and getVarName (variable : expr) (ctx : env) : string = match variable with
   |Var v -> v
-  |_ -> raise (NotAVariable (cast_string(eval_aux ctx variable)))
+  |_ -> raise (NotAVariable (cast_string(eval_aux ctx variable (fun x -> x))))
   
   and absorbMotif (ctx : env) (m : motif) (v : valeur) : unit = match m with
   |MVar va -> (*cas classique let v = e2 in e3*)
@@ -230,17 +242,15 @@ let eval (e : expr) : valeur =
   (*|_ -> failwith "Invalid left-hand side for a 'let in'"*)
 
   (*On crée une valeur -> valeur par curryfication*)
-  and defineFunction (funname : string) (variableshape : motif) (e : expr) (ctx : env) (v : valeur) : valeur = 
+  and defineFunction (funname : string) (variableshape : motif) (e : expr) (ctx : env) (k : cont) (v : valeur) : valeur = 
     if funname <> "" then Hashtbl.add ctx funname (VFun(defineFunction funname variableshape e ctx));
     absorbMotif ctx variableshape v;
-    let res = eval_aux ctx e in
-    unabsorbMotif ctx variableshape;
-    if funname <> "" then Hashtbl.remove ctx funname;
-    res
+    eval_aux ctx e (fun v -> unabsorbMotif ctx variableshape;
+    if funname <> "" then Hashtbl.remove ctx funname; k v)
 
 
 
-  in let v = eval_aux basectx e in 
+  in let v = eval_aux basectx e (fun x -> x) in 
   if !Expr.debug_mode then ( (* on �value e *)
     affiche_valeur v;
     print_newline());

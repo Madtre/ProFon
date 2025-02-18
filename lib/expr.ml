@@ -53,10 +53,12 @@ type valeur =
 |VUnit
 |VI of int
 |VB of bool
-|VFun of (valeur->valeur)
+|VFun of (cont->valeur->valeur)
 |VRef of string
 |VUplet of valeur list
 |VList of valeur list
+and
+cont = valeur -> valeur (*continuation*)
 
 (*Fonctions permettant de cast des valeurs à un type utilisable*)
 exception NotAnInt of valeur

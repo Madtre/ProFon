@@ -1,6 +1,5 @@
-T5-Exceptions/raise2.ml
-T5-Exceptions/raise-fun.ml
-T5-Exceptions/raise.ml
-T7-Listes/comma-list.ml
-T7-Listes/minus-list.ml
-T7-Listes/plus-list.ml
+T3-Fonctions/anonymous-functions.ml
+T3-Fonctions/fun-basic2.ml
+T3-Fonctions/fun-basic.ml
+T3-Fonctions/multiple-args.ml
+T3-Fonctions/various_funs.ml
