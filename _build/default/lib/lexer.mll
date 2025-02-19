@@ -58,6 +58,9 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | "match"         { MATCH }
   | "with"          { WITH }
   | "|"             { CASE }
+  | "try"           { TRY }
+  | "E"             { EXCEPT }
+  | "raise"         { RAISE }
 
   | nombre as s { INT (int_of_string s) }
   | boolean as b { BOOL (bool_of_string b) }

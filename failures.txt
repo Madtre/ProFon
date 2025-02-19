@@ -1,5 +1,0 @@
-T3-Fonctions/anonymous-functions.ml
-T3-Fonctions/fun-basic2.ml
-T3-Fonctions/fun-basic.ml
-T3-Fonctions/multiple-args.ml
-T3-Fonctions/various_funs.ml

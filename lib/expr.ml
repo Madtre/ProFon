@@ -44,8 +44,8 @@ type expr =
   | While of expr*expr
   | List of expr list
   | MatchWith of expr * ((motif * expr) list)
-
-
+  | TryWith of expr * motif * expr
+  | Raise of expr
 
 (* les valeurs ; pour l'instant �a ne peut �tre que des entiers *)
 
@@ -53,7 +53,7 @@ type valeur =
 |VUnit
 |VI of int
 |VB of bool
-|VFun of (cont->valeur->valeur)
+|VFun of ((cont*cont)->valeur->valeur)
 |VRef of string
 |VUplet of valeur list
 |VList of valeur list

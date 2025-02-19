@@ -6,6 +6,7 @@ type token =
   | WHILE
   | VAR of (string)
   | UNDERPLUS
+  | TRY
   | TO
   | TIMES
   | THEN
@@ -15,6 +16,7 @@ type token =
   | REF
   | REC
   | RBRACKET
+  | RAISE
   | QUATROSPUNTOS
   | PRINT
   | PLUS
@@ -35,6 +37,7 @@ type token =
   | FUNCTION
   | FUN
   | FOR
+  | EXCEPT
   | EQUAL
   | EOF
   | ELSE

@@ -49,6 +49,7 @@ let varanonyme = ref 0
 %token QUATROSPUNTOS LBRACKET RBRACKET
 %token MATCH WITH CASE
 %token LEQ LT GEQ GT DIFF
+%token TRY EXCEPT RAISE
 
 %token UNDERPLUS (*token factice ?*)
 
@@ -241,6 +242,11 @@ expression:
 
    | FUNCTION m = cases { match m with | MatchWith(_, l) -> varanonyme := !varanonyme + 1 ; Fun(MVar ("$" ^ string_of_int !varanonyme), MatchWith(Var ("$" ^ string_of_int !varanonyme),l)) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction par filtrage" }
    | FUNCTION CASE m = cases { match m with | MatchWith(_, l) -> varanonyme := !varanonyme + 1 ; Fun(MVar ("$" ^ string_of_int !varanonyme), MatchWith(Var ("$" ^ string_of_int !varanonyme),l)) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction par filtrage" }
+
+   | TRY e = exprseq WITH CASE EXCEPT m = motif RIGHTARROW en=exprseq {TryWith(e,m,en)}
+   | TRY e = exprseq WITH EXCEPT m = motif RIGHTARROW en=exprseq {TryWith(e,m,en)}
+   
+   | RAISE LPAREN EXCEPT e = sexpr RPAREN                                                  {Raise(e)}
 
 
    | a=applic                             { a }

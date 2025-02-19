@@ -55,7 +55,9 @@ let prInt x = if not !src_mode then (print_int x;print_newline()); x;;
     | List [] -> "List([])"
     | List l -> aff_aux "List(" l string_of_expr ^ ")"
     | MatchWith(e, l) -> "MatchWith(" ^ (string_of_expr e) ^ (aff_aux "" l (fun (m, e) -> (string_of_motif m) ^ " -> " ^ (string_of_expr e))) ^ ")"
-   
+    | TryWith(e1,m,e2) -> "TryWith(" ^ string_of_expr e1 ^ "," ^string_of_motif m ^ "," ^ string_of_expr e2 ^ ")"
+    | Raise(e) -> aff_aux "Raise(" [e] string_of_expr
+
 let affiche_expr e = print_string (string_of_expr e)
 
 type form = |E of expr |M of motif |C of motif*expr
@@ -98,7 +100,8 @@ match e with
 | List([]) -> "[]"
 | List(l) -> "(" ^ code_aux (List.map (fun e -> E e) l) (List.init (List.length l) (fun i -> if i = 0 then "" else "::")) true ^ "::[])"
 | MatchWith(e, l) -> "(match " ^ code_of_expr e ^ " with \n"^ code_aux (List.map (fun (a,b) -> (C(a,b))) l) (List.init (List.length l) (fun _ -> "")) false ^ ")"
-
+| TryWith(e1,m,e2) -> "(try " ^ code_of_expr e1 ^ " with |E " ^ code_of_motif m ^ " -> " ^code_of_expr e2 ^ ")"
+| Raise(e1) -> "(raise" ^code_of_expr(e1) ^ ")"
 and code_aux (e : form list) (s: string list) (parenthesis : bool)= (if parenthesis then "(" else "") ^ (match (e,s) with
 |([],[])->""
 |(f::q1, p2::q2) -> 
