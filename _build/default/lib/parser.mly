@@ -70,7 +70,6 @@ let varanonyme = ref 0
 
 %left REF
 
-
 %left IN
 %left SEPARATOR
 
@@ -113,25 +112,22 @@ value:
          du code Caml dans les parties entre {..} ; supprimez-les pour
          montrer que vous avez lu ceci, et mettez juste "Cst i" */
    | b=BOOL                            { Bool b }
+   | v=VAR                             { Var v }
    | LPAREN RPAREN                     { Unit }
+   | LBRACKET RBRACKET                 { List([])}
 
 
 
 applic:
 | a=applic s=sexpr { FunCall(a, s) } (*cas où on réduit le dernier paramètre*)
-| v=VAR        { Var v } (*cas de base, il nous reste plus que le nom de la première fonction*)
-| BANG e=sexpr s=sexpr                           { FunCall(Access(e),s) }
-| LPAREN e=exprseq RPAREN s=sexpr { FunCall(e,s) }
-
+| e=sexpr        { e } (*cas de base, il nous reste plus que le nom de la première fonction*)
 
 
 sexpr:
 | v = value                  { v }
-| v = VAR                    { Var(v) }
 | LPAREN e=exprseq RPAREN { e }       
-| e = sexprlist QUATROSPUNTOS l = listexpr {upletlist e l }
 | LBRACKET l = listexprbracket               { l }
-| LBRACKET RBRACKET                    {List([])}
+| BANG e=sexpr                            { Access(e) }
 
 
 multivariables:
@@ -155,19 +151,17 @@ motif:
 |LBRACKET RBRACKET {MNil}
 
 uplets:
-| e=sexpr COMMA u = uplets  {upletlist e u}
-| a=applic e=sexpr COMMA u = uplets  {upletlist (FunCall(a,e)) u}
-| e=sexpr                  {Uplet([e])}
-| a=applic e=sexpr                 {Uplet([FunCall(a,e)])}
+| a=applic COMMA u = uplets  {upletlist a u}
+| a=applic                  {Uplet([a])}
 
-sexprlist:
-| v = value                  { v }
-| v = VAR                    { Var(v) }
-| LPAREN e=exprseq RPAREN { e }       
+sexprlist: (*j'ajoute ici un cas particulier pour une expression de la forme [2,3] ; cas semblant très spécifique a priori*)
+| a = applic {a}
+| e=applic COMMA u=uplets    { upletlist e u }
+
 
 listexpr:
-| e = sexprlist QUATROSPUNTOS l = listexpr { upletlist e l }
-| LBRACKET RBRACKET                    { List([]) }
+| l = listexpr QUATROSPUNTOS e = applic { upletlist e l }
+| e = applic                   { e }
 
 listexprbracket:
 | e = sexprlist SEPARATOR l = listexprbracket { upletlist e l }
@@ -178,11 +172,8 @@ cases :
 | m = motif RIGHTARROW e = exprseq              { MatchWith(Unit, [(m,e)]) } (*On met Unit ici tant qu'on ne sait pas ce qu'on va match*)
 
 
-expression:			   
-   | v=value                               { v }
-
-   | LPAREN e=exprseq RPAREN               { e }
-
+expression:
+   (*| e=sexpr                               { e }*) (*on fait expression -> sexpr via e -> applic -> sexpr*)
 
    | e1=expression PLUS e2=expression      { Add(e1,e2) }
    | e1=expression TIMES e2=expression     { Mul(e1,e2) }
@@ -207,7 +198,6 @@ expression:
    | LET m = motif EQUAL e1 = exprseq DOUBLESEPARATOR e2=expression { LetIn(m, e1, e2, true) }
    | LET REC m = motif EQUAL e=exprseq IN e2=exprseq          { LetIn(m, e, e2, false) } (*Rec utilisé inutilement*)
    
-   (*| LET LPAREN e=expression COMMA u=uplets EQUAL e1 = expression IN e2=expression { LetIn(upletlist e u, e1, e2) }*)
    
    (*Je ne suis pas convaincu de l'efficacité de cette méthode, mais elle a le mérite de fonctionner*)
    | FUN v=multivariables RIGHTARROW e=exprseq                { aux v e}
@@ -220,20 +210,14 @@ expression:
    | MINUS e=expression                    { Min(Cst 0, e) } (* le moins unaire *)  
    | PRINT e=expression                    { PrInt e } 
    | REF e=expression                      { Ref e }
-   | BANG e=sexpr                            { Access(e) }
    | v=VAR ASSIGN e=expression             { Assign(Var v, e) }
 
-   | e=sexpr COMMA u=uplets    { upletlist e u }
-   | a=applic e=sexpr COMMA u=uplets    { upletlist (FunCall(a,e)) u }
+   | e=applic COMMA u=uplets    { upletlist e u }
 
    | FOR v=VAR EQUAL val1 = value TO val2=value DO e = expression DONE { For(Var v, val1, val2, e) }
 
 
    | WHILE b = expression DO e = expression DONE                                   { While(b,e)}
-
-   | e = sexprlist QUATROSPUNTOS l = listexpr {upletlist e l }
-   | LBRACKET l = listexprbracket               { l }
-   | LBRACKET RBRACKET                    {List([])}
 
   
    | MATCH e = expression WITH m = cases                       { match m with | MatchWith(_, l) -> MatchWith(e,l) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'un match" }
@@ -248,7 +232,9 @@ expression:
    
    | RAISE LPAREN EXCEPT e = sexpr RPAREN                                                  {Raise(e)}
 
+   | a=applic                         { a }
+   | l = listexpr QUATROSPUNTOS LBRACKET RBRACKET { l }
 
-   | a=applic                             { a }
+
 
 

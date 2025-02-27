@@ -12,6 +12,9 @@ module TestFunCall = Dune__exe__TestFunCall
 (** @canonical Dune__exe.TestFunCallRec *)
 module TestFunCallRec = Dune__exe__TestFunCallRec
 
+(** @canonical Dune__exe.TestFunEvalList *)
+module TestFunEvalList = Dune__exe__TestFunEvalList
+
 (** @canonical Dune__exe.TestFunRec *)
 module TestFunRec = Dune__exe__TestFunRec
 

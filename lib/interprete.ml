@@ -174,7 +174,7 @@ let eval (e : expr) : valeur =
       |p::[] -> eval_aux ctx p ((fun v -> k (VList(List.rev (v::vlist)))),kE)
       |p::q -> eval_aux ctx p ((fun v -> eval_list q (v::vlist)),kE)
       )
-    in eval_list (List.rev l) []
+    in eval_list (l) []
 
     | MatchWith(e, l) -> 
       eval_aux ctx e ((fun v ->
