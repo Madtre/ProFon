@@ -1,0 +1,1 @@
+if (prInt 6 = 6) || (prInt 4 < 6) then 1 else 0

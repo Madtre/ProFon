@@ -10,10 +10,13 @@ let rec aux (m : expr) (e : expr) : expr = (*affiche_expr m; affiche_expr e; pri
 |LetIn (v,Unit,Unit,_) -> Fun(v, e)
 |_ -> failwith "comportement innatendu de la grammaire lors du parsing d'une fonction"
 
-let upletlist (e : expr) (u : expr) : expr = match u with
+let upletaux (e : expr) (u : expr) : expr = match u with
 |Uplet(l) -> Uplet(e::l)
-|List(l) -> List(e::l)
 |_-> failwith "comportement innatendu de la grammaire lors du parsing d'un uplet"
+
+let listaux (e : expr) (u : expr) : expr = match u with
+|List(l) -> List(e::l)
+|_-> failwith "comportement innatendu de la grammaire lors du parsing d'une liste"
 
 let mupletlist (e : motif) (u : motif) : motif = match u with
 |MUplet(l) -> MUplet(e::l)
@@ -59,6 +62,7 @@ let varanonyme = ref 0
 /* PARTIE 3, on donne les associativités ********************************* */  
 
 
+%nonassoc UNDERPLUS
 %left RIGHTARROW
 %left CASE
 %left EQUAL
@@ -75,7 +79,7 @@ let varanonyme = ref 0
 
 %left ASSIGN
 
-%nonassoc UNDERPLUS
+(*%right QUATROSPUNTOS*)
 %left PLUS MINUS AND OR   /* associativité gauche: a+b+c, c'est (a+b)+c */
 
    /* priorité plus grande de TIMES par rapport à
@@ -151,21 +155,20 @@ motif:
 |LBRACKET RBRACKET {MNil}
 
 uplets:
-| a=applic COMMA u = uplets  {upletlist a u}
+| a=applic COMMA u = uplets  { upletaux a u}
 | a=applic                  {Uplet([a])}
 
-sexprlist: (*j'ajoute ici un cas particulier pour une expression de la forme [2,3] ; cas semblant très spécifique a priori*)
-| a = applic {a}
-| e=applic COMMA u=uplets    { upletlist e u }
-
+sexprlistb: (*j'ajoute ici un cas particulier pour une expression de la forme [2,3] ; cas semblant très spécifique a priori*)
+| a=applic {a}
+| e=applic COMMA u=uplets    { upletaux e u }
 
 listexpr:
-| l = listexpr QUATROSPUNTOS e = applic { upletlist e l }
-| e = applic                   { e }
+| e = applic QUATROSPUNTOS l = listexpr { listaux e l }
+| e = applic                   { List([e]) }
 
 listexprbracket:
-| e = sexprlist SEPARATOR l = listexprbracket { upletlist e l }
-| e = sexprlist RBRACKET               { List([e])}
+| e = sexprlistb SEPARATOR l = listexprbracket { listaux e l }
+| e = sexprlistb RBRACKET               { List(e::(List [])::[])}
 
 cases :
 | m = motif RIGHTARROW e = exprseq CASE c = cases    { matchwithconstr (m,e) c }
@@ -212,7 +215,7 @@ expression:
    | REF e=expression                      { Ref e }
    | v=VAR ASSIGN e=expression             { Assign(Var v, e) }
 
-   | e=applic COMMA u=uplets    { upletlist e u }
+   | e=applic COMMA u=uplets    { upletaux e u }
 
    | FOR v=VAR EQUAL val1 = value TO val2=value DO e = expression DONE { For(Var v, val1, val2, e) }
 
@@ -233,8 +236,8 @@ expression:
    | RAISE LPAREN EXCEPT e = sexpr RPAREN                                                  {Raise(e)}
 
    | a=applic                         { a }
-   | l = listexpr QUATROSPUNTOS LBRACKET RBRACKET { l }
+   | e=applic QUATROSPUNTOS l=listexpr { listaux e l }
 
-
+(*List( List.rev(match listaux l e with |List(l) -> l |_ -> failwith "erreur de lecture d'une liste") )*)
 
 

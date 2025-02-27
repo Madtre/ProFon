@@ -1,0 +1,1 @@
+if (prInt 5 = prInt 4) || (prInt 4 = prInt 4)  then (prInt 5)+(prInt 6) else 0

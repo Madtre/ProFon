@@ -50,7 +50,8 @@ type token =
   | ASSIGN
   | AND
 val aux : Expr.expr -> Expr.expr -> Expr.expr
-val upletlist : Expr.expr -> Expr.expr -> Expr.expr
+val upletaux : Expr.expr -> Expr.expr -> Expr.expr
+val listaux : Expr.expr -> Expr.expr -> Expr.expr
 val mupletlist : Expr.motif -> Expr.motif -> Expr.motif
 val matchwithconstr : Expr.motif * Expr.expr -> Expr.expr -> Expr.expr
 val varanonyme : int ref
@@ -58,7 +59,7 @@ val menhir_begin_marker : int
 val xv_value : Expr.expr
 val xv_uplets : Expr.expr
 val xv_smotif : Expr.motif
-val xv_sexprlist : Expr.expr
+val xv_sexprlistb : Expr.expr
 val xv_sexpr : Expr.expr
 val xv_muplets : Expr.motif
 val xv_multivariables : Expr.expr

@@ -36,7 +36,7 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | "prInt"         { PRINT }
   | "let"           { LET }
   | "in"            { IN }
-  | "="             { EQUAL }
+  | '='             { EQUAL }
   | "fun"           { FUN }
   | "function"      { FUNCTION }
   | "->"            { RIGHTARROW }

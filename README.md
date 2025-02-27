@@ -1,3 +1,23 @@
+# Projet Fonctionnel, rendu 1
+
+Je suis conscient les motifs où _ doit "jeter astucieusement" ne passent pas :
+let f l = match l with |_::p::[] -> p (*devrait renvoyer le dernier élément d'une liste*)
+
+L'implémentation des for et while en continuation a été laissé de côté par manque de temps
+
+On porte une attention particulière au liste ne se terminant pas par un ::[], afin de pouvoir implémenter concat par exemple
+Pour cela tout List(l) se doit de respecter l de la forme : _::...::_::List([])::[] implicitement
+On peut avoir l1::l2 mais l2 doit respecter la condition
+
+Les failwith qui restent dans le code sont des erreurs très "spécifiques", où l'exception qu'ils provoquent ne serait pas généralisable
+
+L'implémentation actuelle des exceptions permettrait totalement de créer une exception qui prend comme paramètre un valeur au lieu d'un entier, mais le type entier est forcé pour se conformer au sujet
+
+Les variables anonymes (lié à l'implémentation de function) intéragissent actuellement assez mal avec le paramètre d'éxécution -show-src ; même si les tests fonctionneront probablement, l'implémentation aurait dû être mieux travaillée
+
+On ne parse toujours pas 2+3::[] mais des améliorations ont été apportées pour améliorer la clarté du parseur et reconnaître plus de formulation (potentiellement pathologiques). Par exemple on peut écrire f x:: []
+
+
 # Projet Fonctionnel, rendu 0
 
 Ce répertoire contient un programme de départ à partir duquel vous pouvez programmer votre fouine.
@@ -93,3 +113,5 @@ dans le répertoire `lib/`
 
      . indiquez brièvement dans le fichier Readme ce que vous avez pu ajouter à fouine
      . envoyez une archive qui compile
+
+

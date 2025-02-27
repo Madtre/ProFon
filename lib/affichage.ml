@@ -73,7 +73,9 @@ and code_of_expr (e : expr) =
 match e with
 | Cst k -> string_of_int k
 | Bool b -> if b then "true" else "false"
-| Var v -> v
+| Var v ->            (*méthode très sécurisée pour désanonymiser les variables, si j'avais le temps j'aurai fait un truc propre avec une Hashtable*)
+  if v.[0] = '$' then "a1102356" ^ (String.sub v 1 (String.length v - 1)) else v
+
 | Unit -> "()"
 | Add(e1,e2) -> code_aux [E e1;E e2] ["";"+"] true
 | Mul(e1,e2) -> code_aux [E e1;E e2] ["";"*"] true
@@ -98,7 +100,13 @@ match e with
 | For(e1,e2,e3,e4)-> "(" ^ code_aux [E e1;E e2;E e3;E e4] ["for " ; " = " ; " to " ; " do \n"] false ^ "\n done)"
 | While(e1,e2)-> "(" ^ code_aux [E e1 ; E e2] ["while " ; " do\n"] false ^ "\n done)"
 | List([]) -> "[]"
-| List(l) -> "(" ^ code_aux (List.map (fun e -> E e) l) (List.init (List.length l) (fun i -> if i = 0 then "" else "::")) true ^ "::[])"
+| List(s) -> 
+  let rec aux l = match l with
+  |[] -> failwith "code of expr innatendu"
+  |p::[] -> if p = List([]) then [] else p::[]
+  |p::q-> p::(aux q)
+  in let l = aux s in   
+  "(" ^ code_aux (List.map (fun e -> E e) l) (List.init (List.length l) (fun i -> if i = 0 then "" else "::")) true ^ "::[])"
 | MatchWith(e, l) -> "(match " ^ code_of_expr e ^ " with \n"^ code_aux (List.map (fun (a,b) -> (C(a,b))) l) (List.init (List.length l) (fun _ -> "")) false ^ ")"
 | TryWith(e1,m,e2) -> "(try " ^ code_of_expr e1 ^ " with |E " ^ code_of_motif m ^ " -> " ^code_of_expr e2 ^ ")"
 | Raise(e1) -> "(raise" ^code_of_expr(e1) ^ ")"
@@ -151,7 +159,6 @@ let cast_string (v : valeur) : string =
   |VList [] -> "- : valeur list = []"
   |VList l -> let (_, upletv) = uplethelper l "::" in
     "- : valeur list = " ^ upletv ^ "::[]"
-
 
 let affiche_env (ctx : env) : unit = Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n" x (cast_string y)) ctx;;
 

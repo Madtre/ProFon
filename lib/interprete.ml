@@ -94,7 +94,7 @@ let eval (e : expr) : valeur =
       else let changed = not !deep in if changed then deep := true;
       eval_aux ctx e2 ((fun v2 -> absorbMotif ctx m v2 ; eval_aux ctx e3 ((fun v3 -> unabsorbMotif ctx m ; if changed then deep := false ; k v3),kE)),kE)
 
-    (*J'ai pas trop confiance en ça*)
+
     | LetRecIn(e1,e2,e3, b) ->
       if b && !deep then failwith "let a = b ;; utilisé à l'intérieur d'une expression" 
       else let changed = not !deep in if changed then deep := true;
@@ -147,7 +147,8 @@ let eval (e : expr) : valeur =
       )
     in eval_uplet (List.rev elist) []
 
-    (* L'implémentation des for et while est laissé de côté pour le moment 
+    (* L'implémentation des for et while est laissé de côté 
+
     For(v, emin, emax, e) -> let va = getVarName v ctx in
       let imin = cast_int(eval_aux ctx emin) in
       let imax = cast_int(eval_aux ctx emax) in 
@@ -169,12 +170,22 @@ let eval (e : expr) : valeur =
     | While(_) -> k VUnit
 
     | List(l) -> 
-      let rec eval_list (elist : expr list) (vlist : valeur list)= ( match elist with
-      |[] -> failwith "les uplets vides n'existent pas"
-      |p::[] -> eval_aux ctx p ((fun v -> k (VList(List.rev (v::vlist)))),kE)
-      |p::q -> eval_aux ctx p ((fun v -> eval_list q (v::vlist)),kE)
-      )
-    in eval_list (l) []
+      let eval_list (exprlist : expr list) : valeur = 
+        let rec list_aux (elist : expr list) (vlist : valeur list) : valeur =
+        (match elist with
+        |[] -> k (VList [])
+        (*Ici on gère le cas des listes qui ne sont pas terminés par un ::[] explicite*)
+        |p::[] -> eval_aux ctx p ((fun v -> VList(v::vlist)),kE)
+        |p::q -> eval_aux ctx p ((fun v -> list_aux q (v::vlist)),kE)
+        )
+      in match exprlist with
+      |[]->k (VList([]))
+      |p::q-> if p = List([]) then k (list_aux q []) else eval_aux ctx p ((fun v -> 
+        match v with
+        |VList(l) -> k(match (list_aux q []) with |VList(l2) -> VList(l2@l) |_->failwith "erreur innatendue")
+        |_->failwith "liste impropre"
+        ),kE)
+      in eval_list (List.rev l)
 
     | MatchWith(e, l) -> 
       eval_aux ctx e ((fun v ->
@@ -258,7 +269,7 @@ let eval (e : expr) : valeur =
 
 
 
-  in let v = eval_aux basectx e ((fun x -> x),(fun _-> failwith "Raise outside of a try with")) in 
+  in let v = eval_aux basectx e ((fun x -> x),(fun _ -> failwith "Raise outside of a try with")) in 
   if !Expr.debug_mode then ( (* on �value e *)
     affiche_valeur v;
     print_newline());
