@@ -91,20 +91,20 @@ let eval (e : expr) : valeur =
     
     | LetIn(m,e2,e3, b) ->
       if b && !deep then failwith "let a = b ;; utilisé à l'intérieur d'une expression" 
-      else let changed = not !deep in if not !deep then deep := true;
-      eval_aux ctx e2 ((fun v2 -> absorbMotif ctx m v2 ; if changed then deep := false ; eval_aux ctx e3 ((fun v3 -> unabsorbMotif ctx m ; k v3),kE)),kE)
+      else let changed = not !deep && not b in if not !deep && not b then deep := true;
+      eval_aux ctx e2 ((fun v2 -> absorbMotif ctx m v2 ; eval_aux ctx e3 ((fun v3 -> if changed then deep := false ; unabsorbMotif ctx m ; k v3),kE)),kE)
 
 
     | LetRecIn(e1,e2,e3, b) ->
       if b && !deep then failwith "let a = b ;; utilisé à l'intérieur d'une expression" 
-      else let changed = not !deep in if changed then deep := true;
+      else let changed = not !deep && not b in if not !deep && not b then deep := true;
       if e1 = Var "_" || e1 = Var "()"
         then failwith "Error : Only variables are allowed as left-hand side of 'let rec'"
       else let funname = getVarName e1 ctx in 
         (match e2 with
         | Fun(v, e) -> 
-          Hashtbl.add ctx funname (VFun(defineFunction funname v e ctx)); if changed then deep := false ;
-          eval_aux ctx e3 ((fun res -> Hashtbl.remove ctx funname; k res),kE)
+          Hashtbl.add ctx funname (VFun(defineFunction funname v e ctx)); 
+          eval_aux ctx e3 ((fun res -> if changed then deep := false ; Hashtbl.remove ctx funname; k res),kE)
         | _ -> failwith "Error : This kind of expression is not allowed as right-hand side of 'let rec'")
 
     | Fun(e1,e2) -> 
@@ -128,19 +128,7 @@ let eval (e : expr) : valeur =
     | Assign(ap,nvalue) ->
       eval_aux ctx ap ((fun v -> match v with
       |VRef s -> eval_aux ctx nvalue ((fun v2 -> Hashtbl.replace globalctx s v2 ; k VUnit), kE)
-      |_ -> failwith "expected to ! a ref"),kE)
-
-      (*let varname = getVarName var globalctx in
-      eval_aux ctx nvalue ((fun nv ->
-      (try 
-        let v = findVarValue varname ctx in
-        match v with
-        |VRef s -> Hashtbl.replace globalctx s (nv)
-        |_ -> failwith (varname ^ " isn't a ref ")
-      
-      with
-      |Not_found -> raise (UnboundVariable varname)
-      ); k VUnit),kE)*)
+      |_ -> failwith "expected to := a ref"),kE)
 
     | Uplet(elist) -> 
       let rec eval_uplet (elist : expr list) (vlist : valeur list)= ( match elist with

@@ -16,12 +16,21 @@ Fix, on peut mettre une applic, + amélioration de la gestion des ref
 . il faut pouvoir faire try .. with (E i) -> ...    (avec les parenthèses)
 Fix
 . le code    let u = -3,4 in prInt 3    est refusé par fouine.
+Fix par rajout des internal expression
 même chose pour let u = 3, ref () in ...
+Fix par rajout des internal expression
 . le fichier minus-list.ml, qui faisait partie de l'archive de tests fournie, est refusé par fouine. meme chose pour plus-list.ml.
+Fix par rajout des internal expression
 .  l'ordre d'évaluation des éléments d'une liste n'est pas le bon
+j'ai rajouté testOrdreList.ml, il indique bien qu'on évalue les listes en commençant par le "fond", et il semblerait que ce soit similaire à ce que fais OCaml
+il est possible qu'une des modifications que j'ai fait avant ça ai changé le comportement de cette évaluation.
+
 . le programme    let l = 3::4+5::[] in prInt 2     est refusé par fouine
+Fix par rajout des internal expression
 . le programme    let f x = match x with | (h1 :: l1, l2) -> 3 in prInt 3   est refusé par fouine
-Inverser smotif et motif ?
+Fix
+
+Je suis conscient du fait que les internal expression ne sont pas non plus miraculeuses : on devrait par exemple pouvoir parser des choses du type let a = ();4,5 ou if true then 4 else 5,6 mais je manque de temps
 
 # Projet Fonctionnel, rendu 1
 

@@ -1,0 +1,1 @@
+let a = ref 3 in let b = ref 12 in (if true then a else b) := 6 ; prInt !a

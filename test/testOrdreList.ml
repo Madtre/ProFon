@@ -1,0 +1,1 @@
+let l = prInt 1::prInt 2::prInt 3::prInt 4 ::[] in let l2 = [prInt 1;prInt 2;prInt 3;prInt 4]in l2
