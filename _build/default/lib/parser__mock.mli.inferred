@@ -37,6 +37,7 @@ type token =
   | EXCEPT
   | EQUAL
   | EOF
+  | END
   | ELSE
   | DOUBLESEPARATOR
   | DONE
@@ -46,6 +47,7 @@ type token =
   | COMMA
   | CASE
   | BOOL of bool
+  | BEGIN
   | BANG
   | ASSIGN
   | AND
@@ -59,14 +61,11 @@ val menhir_begin_marker : int
 val xv_value : Expr.expr
 val xv_uplets : Expr.expr
 val xv_smotif : Expr.motif
-val xv_sexprlistb : Expr.expr
 val xv_sexpr : Expr.expr
 val xv_muplets : Expr.motif
 val xv_multivariables : Expr.expr
 val xv_motif : Expr.motif
 val xv_main : Expr.expr
-val xv_listexprbracket : Expr.expr
-val xv_listexpr : Expr.expr
 val xv_exprseq : Expr.expr
 val xv_expression : Expr.expr
 val xv_cases : Expr.expr

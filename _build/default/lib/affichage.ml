@@ -42,7 +42,8 @@ let prInt x = if not !src_mode then (print_int x;print_newline()); x;;
     | Lt(e1,e2) -> aff_aux "Lt(" [e1;e2] string_of_expr ^ ")"
     | IfThenElse(e1,e2,e3) -> aff_aux "IfThenElse(" [e1;e2;e3] string_of_expr ^ ")"
     | PrInt e -> aff_aux "PrInt(" [e] string_of_expr ^ ")"
-    | LetIn(e1,e2,e3,_) -> (aff_aux "LetIn(" [e1] string_of_motif) ^ (aff_aux "" [e2;e3] string_of_expr) ^ ")"
+    (*| LetIn(e1,e2,e3,_) -> (aff_aux "LetIn(" [e1] string_of_motif) ^ (aff_aux "" [e2;e3] string_of_expr) ^ ")"*)
+    | LetIn(e1,e2,e3,b) -> (aff_aux "LetIn(" [e1] string_of_motif) ^ (aff_aux "" [e2;e3] string_of_expr) ^ "," ^ string_of_bool b ^ ")"
     | LetRecIn(e1,e2,e3,_) -> aff_aux "LetRecIn(" [e1;e2;e3] string_of_expr ^ ")"
     | Fun(e1,e2) -> (aff_aux "LetIn(" [e1] string_of_motif) ^ (aff_aux "" [e2] string_of_expr) ^ ")"
     | FunCall(e1,e2) -> aff_aux "FunCall(" [e1;e2] string_of_expr ^ ")"
@@ -126,13 +127,13 @@ and code_aux (e : form list) (s: string list) (parenthesis : bool)= (if parenthe
 
 let affiche_code e = print_string (code_of_expr e)
 
-let cast_string (v : valeur) : string = 
-  let rec getcontent (v : valeur) : string = (match v with
+let rec cast_string (v : valeur) (refcontent : string->valeur) : string = 
+  let rec getcontent (v : valeur) (refcontent : string->valeur) : string = (match v with
     |VI k -> string_of_int k
     |VB b -> string_of_bool b
     |VUnit -> "()"
     |VFun _ -> "<fun>"
-    |VRef r -> "{contents = " ^ r ^ "}"
+    |VRef r -> "{contents = " ^ cast_string (refcontent r) refcontent ^ "}"
     |VUplet l -> let (_, upletv) = (uplethelper l ",") in "(" ^ upletv ^ ")"
     |VList [] -> "[]"
     |VList l -> let (_, upletv) = (uplethelper l "::") in "(" ^ upletv ^ ")"
@@ -141,8 +142,8 @@ let cast_string (v : valeur) : string =
   
   (fun accu elem -> let (accu1,accu2,b) = accu in 
     (if b 
-      then ("valeur * " ^ accu1, accu2 ^ separator ^ (getcontent elem), true) 
-      else ("valeur * " ^ accu1, accu2 ^ (getcontent elem), true)
+      then ("valeur * " ^ accu1, accu2 ^ separator ^ (getcontent elem refcontent), true) 
+      else ("valeur * " ^ accu1, accu2 ^ (getcontent elem refcontent), true)
     )
   )
     ("","", false) l) in (uplett, upletv)
@@ -153,13 +154,13 @@ let cast_string (v : valeur) : string =
   |VB b -> "- : bool = " ^ string_of_bool b
   |VUnit -> "- : unit"
   |VFun _ -> "- : function"
-  |VRef _ -> "- : valeur ref = " ^ (getcontent v)
+  |VRef _ -> "- : valeur ref = " ^ (getcontent v refcontent)
   |VUplet l -> let (uplett, upletv) = uplethelper l "," in
     "- : " ^ uplett ^ " = (" ^ upletv ^ ")"
   |VList [] -> "- : valeur list = []"
   |VList l -> let (_, upletv) = uplethelper l "::" in
     "- : valeur list = " ^ upletv ^ "::[]"
 
-let affiche_env (ctx : env) : unit = Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n" x (cast_string y)) ctx;;
+let affiche_env (ctx : env) (refcontent : string->valeur) : unit = Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n" x (cast_string y refcontent)) ctx;;
 
-let affiche_valeur v = print_string (cast_string v)
+let affiche_valeur (v : valeur) (refcontent : string->valeur) = print_string (cast_string v refcontent)

@@ -1,3 +1,28 @@
+# Projet Fonctionnel, rendu 1.1
+Le projet compile sans problème. Voici des bugs qui ont été trouvés :
+. Un begin peut être fermé par )
+Fix
+
+. L’exemple suivant ne passe pas :
+let a = 3 ;;
+let b = 4 ;;
+let c = 5 in
+prInt (a+b+c)
+Fix
+
+. la ligne     | v=VAR ASSIGN e=expression             { Assign(Var v, e) }
+dans le parser est trop restrictive : on peut avoir une expression à gauche de :=
+Fix, on peut mettre une applic, + amélioration de la gestion des ref
+. il faut pouvoir faire try .. with (E i) -> ...    (avec les parenthèses)
+Fix
+. le code    let u = -3,4 in prInt 3    est refusé par fouine.
+même chose pour let u = 3, ref () in ...
+. le fichier minus-list.ml, qui faisait partie de l'archive de tests fournie, est refusé par fouine. meme chose pour plus-list.ml.
+.  l'ordre d'évaluation des éléments d'une liste n'est pas le bon
+. le programme    let l = 3::4+5::[] in prInt 2     est refusé par fouine
+. le programme    let f x = match x with | (h1 :: l1, l2) -> 3 in prInt 3   est refusé par fouine
+Inverser smotif et motif ?
+
 # Projet Fonctionnel, rendu 1
 
 Je suis conscient les motifs où _ doit "jeter astucieusement" ne passent pas :

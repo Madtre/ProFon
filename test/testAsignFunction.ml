@@ -1,0 +1,1 @@
+let a = ref 0 in let f x = x in f a := 3 ; a

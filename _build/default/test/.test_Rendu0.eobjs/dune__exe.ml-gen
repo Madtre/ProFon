@@ -3,11 +3,20 @@
 (** @canonical Dune__exe.Basic *)
 module Basic = Dune__exe__Basic
 
+(** @canonical Dune__exe.ShouldfailBeginEnd *)
+module ShouldfailBeginEnd = Dune__exe__ShouldfailBeginEnd
+
+(** @canonical Dune__exe.TestAsignFunction *)
+module TestAsignFunction = Dune__exe__TestAsignFunction
+
 (** @canonical Dune__exe.TestConcat *)
 module TestConcat = Dune__exe__TestConcat
 
 (** @canonical Dune__exe.TestConcatAccu *)
 module TestConcatAccu = Dune__exe__TestConcatAccu
+
+(** @canonical Dune__exe.TestDoubleSeparator *)
+module TestDoubleSeparator = Dune__exe__TestDoubleSeparator
 
 (** @canonical Dune__exe.TestEvaluationParesseuse *)
 module TestEvaluationParesseuse = Dune__exe__TestEvaluationParesseuse
@@ -39,14 +48,17 @@ module TestMatchWithRec = Dune__exe__TestMatchWithRec
 (** @canonical Dune__exe.TestOrdreDinterpretation *)
 module TestOrdreDinterpretation = Dune__exe__TestOrdreDinterpretation
 
+(** @canonical Dune__exe.TestTryWith *)
+module TestTryWith = Dune__exe__TestTryWith
+
 (** @canonical Dune__exe.TestTupledeTuple *)
 module TestTupledeTuple = Dune__exe__TestTupledeTuple
 
 (** @canonical Dune__exe.TestUplet *)
 module TestUplet = Dune__exe__TestUplet
 
-(** @canonical Dune__exe.TestWhile *)
-module TestWhile = Dune__exe__TestWhile
+(** @canonical Dune__exe.TestUpletMoins *)
+module TestUpletMoins = Dune__exe__TestUpletMoins
 
 (** @canonical Dune__exe.Test_Rendu0 *)
 module Test_Rendu0 = Dune__exe__Test_Rendu0

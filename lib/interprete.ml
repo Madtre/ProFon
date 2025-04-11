@@ -61,8 +61,8 @@ let eval (e : expr) : valeur =
       then (print_string "current expr : " ; affiche_expr e ; print_newline()); 
     if !debug_mode 
     then
-      (print_string "global ctx : " ; print_newline() ; affiche_env globalctx ; 
-      print_string "local ctx :" ; print_newline() ; affiche_env ctx ; print_newline()) ;
+      (print_string "global ctx : " ; print_newline() ; affiche_env globalctx (fun s -> findVarValue s globalctx); 
+      print_string "local ctx :" ; print_newline() ; affiche_env ctx (fun s -> findVarValue s globalctx) ; print_newline()) ;
     (*try*)begin
     match e with
     | Cst c -> k (VI c)
@@ -91,8 +91,8 @@ let eval (e : expr) : valeur =
     
     | LetIn(m,e2,e3, b) ->
       if b && !deep then failwith "let a = b ;; utilisé à l'intérieur d'une expression" 
-      else let changed = not !deep in if changed then deep := true;
-      eval_aux ctx e2 ((fun v2 -> absorbMotif ctx m v2 ; eval_aux ctx e3 ((fun v3 -> unabsorbMotif ctx m ; if changed then deep := false ; k v3),kE)),kE)
+      else let changed = not !deep in if not !deep then deep := true;
+      eval_aux ctx e2 ((fun v2 -> absorbMotif ctx m v2 ; if changed then deep := false ; eval_aux ctx e3 ((fun v3 -> unabsorbMotif ctx m ; k v3),kE)),kE)
 
 
     | LetRecIn(e1,e2,e3, b) ->
@@ -103,8 +103,8 @@ let eval (e : expr) : valeur =
       else let funname = getVarName e1 ctx in 
         (match e2 with
         | Fun(v, e) -> 
-          Hashtbl.add ctx funname (VFun(defineFunction funname v e ctx));
-          eval_aux ctx e3 ((fun res -> Hashtbl.remove ctx funname; if changed then deep := false ; k res),kE)
+          Hashtbl.add ctx funname (VFun(defineFunction funname v e ctx)); if changed then deep := false ;
+          eval_aux ctx e3 ((fun res -> Hashtbl.remove ctx funname; k res),kE)
         | _ -> failwith "Error : This kind of expression is not allowed as right-hand side of 'let rec'")
 
     | Fun(e1,e2) -> 
@@ -125,8 +125,12 @@ let eval (e : expr) : valeur =
       |_ -> failwith "expected to ! a ref"
     ),kE)
 
-    | Assign(var,nvalue) ->
-      let varname = getVarName var globalctx in
+    | Assign(ap,nvalue) ->
+      eval_aux ctx ap ((fun v -> match v with
+      |VRef s -> eval_aux ctx nvalue ((fun v2 -> Hashtbl.replace globalctx s v2 ; k VUnit), kE)
+      |_ -> failwith "expected to ! a ref"),kE)
+
+      (*let varname = getVarName var globalctx in
       eval_aux ctx nvalue ((fun nv ->
       (try 
         let v = findVarValue varname ctx in
@@ -136,9 +140,8 @@ let eval (e : expr) : valeur =
       
       with
       |Not_found -> raise (UnboundVariable varname)
-      ); k VUnit),kE)
+      ); k VUnit),kE)*)
 
-    (*Il faut surement list.rev la elist*)
     | Uplet(elist) -> 
       let rec eval_uplet (elist : expr list) (vlist : valeur list)= ( match elist with
       |[] -> failwith "les uplets vides n'existent pas"
@@ -174,13 +177,15 @@ let eval (e : expr) : valeur =
         let rec list_aux (elist : expr list) (vlist : valeur list) : valeur =
         (match elist with
         |[] -> k (VList [])
-        (*Ici on gère le cas des listes qui ne sont pas terminés par un ::[] explicite*)
         |p::[] -> eval_aux ctx p ((fun v -> VList(v::vlist)),kE)
         |p::q -> eval_aux ctx p ((fun v -> list_aux q (v::vlist)),kE)
         )
       in match exprlist with
+      (*Ici on gère le cas des listes qui ne sont pas terminés par un ::[] explicite*)
       |[]->k (VList([]))
-      |p::q-> if p = List([]) then k (list_aux q []) else eval_aux ctx p ((fun v -> 
+      |p::q-> if p = List([]) then k (list_aux q []) (*Cas de liste dite explicite dans le readme*)
+      
+      else eval_aux ctx p ((fun v -> (*cas de liste dite implicite dans le readme*)
         match v with
         |VList(l) -> k(match (list_aux q []) with |VList(l2) -> VList(l2@l) |_->failwith "erreur innatendue")
         |_->failwith "liste impropre"
@@ -219,8 +224,9 @@ let eval (e : expr) : valeur =
 
   and getVarName (variable : expr) (ctx : env) : string = match variable with
   |Var v -> v
-  |_ -> raise (NotAVariable (cast_string(eval_aux ctx variable ((fun x -> x),(fun _ -> failwith "Comportement innatendu")))))
+  |_ -> raise (NotAVariable (cast_string(eval_aux ctx variable ((fun x -> x),(fun _ -> failwith "Comportement innatendu"))) (fun s -> findVarValue s globalctx)))
   
+  (* Les fonctions absorb motif et unabsorb motif font évoluer l'environnement en assignant aux variables dans les motifs les valeurs adaptées*)
   and absorbMotif (ctx : env) (m : motif) (v : valeur) : unit = match m with
   |MVar va -> (*cas classique let v = e2 in e3*)
   if va <> "_" then
@@ -245,6 +251,7 @@ let eval (e : expr) : valeur =
     |MNil -> ()
     |MCons(m, l) -> unabsorbMotif ctx m ; unabsorbMotif ctx l
 
+  (*Utile pour le match with*)
   and canabsorbMotif (m : motif) (v : valeur) : bool = match m with
   |MVar _ -> true
   |MUplet(l1) -> (match v with (*cas uplet let (v1, v2,...) = (e1,e2,...) = e3*)
@@ -257,12 +264,12 @@ let eval (e : expr) : valeur =
   |MCons(m, l) -> (match v with
       |VList(p::q) -> canabsorbMotif m p && canabsorbMotif l (VList q)
       |_ -> false)
-    
-  (*|_ -> failwith "Invalid left-hand side for a 'let in'"*)
+
 
   (*On crée une valeur -> valeur par curryfication*)
   and defineFunction (funname : string) (variableshape : motif) (e : expr) (ctx : env) ((k,kE) : (cont*cont)) (v : valeur) : valeur = 
-    if funname <> "" then Hashtbl.add ctx funname (VFun(defineFunction funname variableshape e ctx));
+    (*Si la fonction a un nom, elle est récursive, on l'ajoute donc à son propre contexte*)
+    if funname <> "" then Hashtbl.add ctx funname (VFun(defineFunction funname variableshape e ctx));    
     absorbMotif ctx variableshape v;
     eval_aux ctx e ((fun v -> unabsorbMotif ctx variableshape;
     if funname <> "" then Hashtbl.remove ctx funname; k v),kE)
@@ -271,6 +278,6 @@ let eval (e : expr) : valeur =
 
   in let v = eval_aux basectx e ((fun x -> x),(fun _ -> failwith "Raise outside of a try with")) in 
   if !Expr.debug_mode then ( (* on �value e *)
-    affiche_valeur v;
+    affiche_valeur v (fun s -> findVarValue s globalctx);
     print_newline());
   v

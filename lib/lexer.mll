@@ -20,8 +20,10 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | '*'             { TIMES }
   | '-'             { MINUS }
   | '/'             { DIV }
-  | '(' |"begin"    { LPAREN } 
-  | ')' |"end"      { RPAREN }
+  | '('             { LPAREN } 
+  | ')'             { RPAREN }
+  | "begin"         { BEGIN }
+  | "end"           { END }
   | "<="            { LEQ }
   | "<"             { LT }
   | ">="            { GEQ }

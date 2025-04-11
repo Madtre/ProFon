@@ -53,6 +53,7 @@ let varanonyme = ref 0
 %token MATCH WITH CASE
 %token LEQ LT GEQ GT DIFF
 %token TRY EXCEPT RAISE
+%token BEGIN END
 
 %token UNDERPLUS (*token factice ?*)
 
@@ -63,6 +64,9 @@ let varanonyme = ref 0
 
 
 %nonassoc UNDERPLUS
+
+%left PRIOAPPLIC
+
 %left RIGHTARROW
 %left CASE
 %left EQUAL
@@ -77,14 +81,20 @@ let varanonyme = ref 0
 %left IN
 %left SEPARATOR
 
-%left ASSIGN
+
 
 (*%right QUATROSPUNTOS*)
 %left PLUS MINUS AND OR   /* associativité gauche: a+b+c, c'est (a+b)+c */
-
    /* priorité plus grande de TIMES par rapport à
       PLUS et MINUS, car est sur une ligne située plus bas */
 %left TIMES DIV NOT
+%left MOINSUNAIRE
+%left BANG
+
+%right COMMA
+
+%right ASSIGN
+
 %left DOUBLESEPARATOR
 %left PRINT
 
@@ -110,28 +120,33 @@ exprseq:
 
 
 value:
-  | i=INT                              { Cst i} 
-      /* on appelle i l'attribut associé à INT */
-      /* les "let in" sont juste là pour illustrer le fait que l'on peut mettre
-         du code Caml dans les parties entre {..} ; supprimez-les pour
-         montrer que vous avez lu ceci, et mettez juste "Cst i" */
-   | b=BOOL                            { Bool b }
-   | v=VAR                             { Var v }
-   | LPAREN RPAREN                     { Unit }
-   | LBRACKET RBRACKET                 { List([])}
+| i=INT                              { Cst i} 
+| b=BOOL                            { Bool b }
+| v=VAR                             { Var v }
+| LPAREN RPAREN                     { Unit }
+| LBRACKET RBRACKET                 { List([])}
 
 
 
 applic:
-| a=applic s=sexpr { FunCall(a, s) } (*cas où on réduit le dernier paramètre*)
+| a=applic s=sexpr { FunCall(a, s) } %prec PRIOAPPLIC  (*cas où on réduit le dernier paramètre*)
 | e=sexpr        { e } (*cas de base, il nous reste plus que le nom de la première fonction*)
 
 
 sexpr:
 | v = value                  { v }
 | LPAREN e=exprseq RPAREN { e }       
-| LBRACKET l = listexprbracket               { l }
+| BEGIN e=exprseq END { e }     
+(*| LBRACKET l = listexprbracket               { l }*)
 | BANG e=sexpr                            { Access(e) }
+| a=sexpr ASSIGN e=sexpr             { Assign(a, e) }
+
+| e1=sexpr PLUS e2=sexpr      { Add(e1,e2) }
+| e1=sexpr TIMES e2=sexpr     { Mul(e1,e2) }
+| e1=sexpr MINUS e2=sexpr     { Min(e1,e2) }
+| e1=sexpr DIV e2=sexpr       { Div(e1,e2) }
+
+| MINUS e=sexpr %prec MOINSUNAIRE      { Min(Cst 0, e) } 
 
 
 multivariables:
@@ -143,20 +158,20 @@ muplets:
 | m=smotif            {MUplet([m])}
 
 smotif :
-|v = VAR                            {MVar(v)}
-|LBRACKET RBRACKET                  {MNil}
-|LPAREN m = motif RPAREN            {m}
+| v = VAR                            {MVar(v)}
+| LBRACKET RBRACKET                  {MNil}
+| LPAREN m = motif RPAREN            {m}
 
 motif:
-|v = VAR                      {MVar(v)}
-|m = smotif COMMA u=muplets   {mupletlist m u}
-|LPAREN m=motif RPAREN   { m }
-|m = smotif QUATROSPUNTOS l=smotif {MCons(m,l)}
-|LBRACKET RBRACKET {MNil}
+| v = VAR                      {MVar(v)}
+| m = smotif COMMA u=muplets   {mupletlist m u}
+| LPAREN m=motif RPAREN   { m }
+| m = smotif QUATROSPUNTOS l=smotif {MCons(m,l)}
+| LBRACKET RBRACKET {MNil}
 
 uplets:
-| a=applic COMMA u = uplets  { upletaux a u}
-| a=applic                  {Uplet([a])}
+| e=sexpr COMMA u = uplets  { upletaux e u}
+| e=sexpr                  {Uplet([e])}
 
 sexprlistb: (*j'ajoute ici un cas particulier pour une expression de la forme [2,3] ; cas semblant très spécifique a priori*)
 | a=applic {a}
@@ -178,10 +193,6 @@ cases :
 expression:
    (*| e=sexpr                               { e }*) (*on fait expression -> sexpr via e -> applic -> sexpr*)
 
-   | e1=expression PLUS e2=expression      { Add(e1,e2) }
-   | e1=expression TIMES e2=expression     { Mul(e1,e2) }
-   | e1=expression MINUS e2=expression     { Min(e1,e2) }
-   | e1=expression DIV e2=expression       { Div(e1,e2) }
 
    | e1=expression AND e2=expression       { And(e1,e2) }
    | e1=expression OR e2=expression        { Or(e1,e2) }
@@ -198,7 +209,7 @@ expression:
    | IF e1=expression THEN e2=expression                     { IfThenElse(e1,e2,Unit)}
    
    | LET m = motif EQUAL e1 = exprseq IN e2=exprseq { LetIn(m, e1, e2, false) }
-   | LET m = motif EQUAL e1 = exprseq DOUBLESEPARATOR e2=expression { LetIn(m, e1, e2, true) }
+   | LET m = motif EQUAL e1 = exprseq DOUBLESEPARATOR e2=exprseq { LetIn(m, e1, e2, true) }
    | LET REC m = motif EQUAL e=exprseq IN e2=exprseq          { LetIn(m, e, e2, false) } (*Rec utilisé inutilement*)
    
    
@@ -210,12 +221,10 @@ expression:
    | LET REC v = VAR vs = multivariables EQUAL e=exprseq IN e2=exprseq          { LetRecIn(Var v, aux vs e, e2, false) }
 
 
-   | MINUS e=expression                    { Min(Cst 0, e) } (* le moins unaire *)  
    | PRINT e=expression                    { PrInt e } 
    | REF e=expression                      { Ref e }
-   | v=VAR ASSIGN e=expression             { Assign(Var v, e) }
 
-   | e=applic COMMA u=uplets    { upletaux e u }
+   | e=sexpr COMMA u=uplets    { upletaux e u }
 
    | FOR v=VAR EQUAL val1 = value TO val2=value DO e = expression DONE { For(Var v, val1, val2, e) }
 
@@ -232,11 +241,14 @@ expression:
 
    | TRY e = exprseq WITH CASE EXCEPT m = motif RIGHTARROW en=exprseq {TryWith(e,m,en)}
    | TRY e = exprseq WITH EXCEPT m = motif RIGHTARROW en=exprseq {TryWith(e,m,en)}
+
+   | TRY e = exprseq WITH CASE LPAREN EXCEPT m = motif RPAREN RIGHTARROW en=exprseq {TryWith(e,m,en)}
+   | TRY e = exprseq WITH LPAREN EXCEPT m = motif RPAREN RIGHTARROW en=exprseq {TryWith(e,m,en)}
    
    | RAISE LPAREN EXCEPT e = sexpr RPAREN                                                  {Raise(e)}
 
    | a=applic                         { a }
-   | e=applic QUATROSPUNTOS l=listexpr { listaux e l }
+   (*| e=applic QUATROSPUNTOS l=listexpr { listaux e l }*)
 
 (*List( List.rev(match listaux l e with |List(l) -> l |_ -> failwith "erreur de lecture d'une liste") )*)
 

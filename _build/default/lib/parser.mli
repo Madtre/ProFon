@@ -40,6 +40,7 @@ type token =
   | EXCEPT
   | EQUAL
   | EOF
+  | END
   | ELSE
   | DOUBLESEPARATOR
   | DONE
@@ -49,6 +50,7 @@ type token =
   | COMMA
   | CASE
   | BOOL of (bool)
+  | BEGIN
   | BANG
   | ASSIGN
   | AND
