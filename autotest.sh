@@ -44,7 +44,9 @@ case "$1" in
 5) Folders=( "T1-Coeur" "T2-LetIn" "T3-Fonctions" "T31-RecDef" "T4-References" "T5-Exceptions" );;
 6) Folders=( "T1-Coeur" "T2-LetIn" "T3-Fonctions" "T31-RecDef" "T4-References" "T5-Exceptions" "T6-Couples" );;
 7) Folders=( "T1-Coeur" "T2-LetIn" "T3-Fonctions" "T31-RecDef" "T4-References" "T5-Exceptions" "T6-Couples" "T7-Listes" );;
-*) echo "ERROR: Wrong first argument: $1 should be in [1 2 3 31 4 5 6 7]";exit 1;;
+OldFouine) Folders=( "T1-Coeur" "T2-LetIn" "T3-Fonctions" "T31-RecDef" "T4-References" "T5-Exceptions" "T6-Couples" "T7-Listes" "test");;
+NewFouine) Folders=( "T1-Coeur" "T2-LetIn" "T3-Fonctions" "T31-RecDef" "T4-References" "T5-Exceptions" "T6-Couples" "T7-Listes" "test" "testtype");;
+*) echo "ERROR: Wrong first argument: $1 should be in [1 2 3 31 4 5 6 7 OldFouine NewFouine]";exit 1;;
 esac
 
 if [[ -x "$2" ]]
