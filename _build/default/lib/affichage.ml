@@ -60,7 +60,7 @@ let prInt x = if not !src_mode then (print_int x;print_newline()); x;;
     | TryWith(e1,m,e2) -> "TryWith(" ^ string_of_expr e1 ^ "," ^string_of_motif m ^ "," ^ string_of_expr e2 ^ ")"
     | Raise(e) -> aff_aux "Raise(" [e] string_of_expr
     | TypeDef(_,e) -> "TypeDef(" ^ "," ^ string_of_expr e ^ ")"
-    | TypeUse(s,e) -> "TypeUse(" ^s ^ "," ^ string_of_expr e ^ ")"
+    | TypeUse(s) -> "TypeUse(" ^s ^ ")"
 
 let affiche_expr e = print_string (string_of_expr e)
 
@@ -116,7 +116,7 @@ match e with
 | TryWith(e1,m,e2) -> "(try " ^ code_of_expr e1 ^ " with |E " ^ code_of_motif m ^ " -> " ^code_of_expr e2 ^ ")"
 | Raise(e1) -> "(raise" ^code_of_expr(e1) ^ ")"
 | TypeDef(_,_) -> "PAS IMPLEMENTE"
-| TypeUse(_,_) -> "PAS IMPLEMENTE"
+| TypeUse(_) -> "PAS IMPLEMENTE"
 and code_aux (e : form list) (s: string list) (parenthesis : bool)= (if parenthesis then "(" else "") ^ (match (e,s) with
 |([],[])->""
 |(f::q1, p2::q2) -> 

@@ -32,6 +32,7 @@ let varanonyme = ref 0
 let parsetype (typestring : string) : supportedtype = match typestring with
 |"int"->Int
 |"bool"->Boolean
+|"unit"->Unit
 |_->CustomType(typestring)
 
 %}
@@ -88,9 +89,11 @@ let parsetype (typestring : string) : supportedtype = match typestring with
 %left PLUS MINUS AND OR   
 %left MOINSUNAIRE
 %left TIMES DIV NOT
+%left CONSTRUCT
 %left DOUBLESEPARATOR
 %left PRINT
 %right SEPARATOR
+
 
 /* PARTIE 4, le point d'entrée ******************************************* */
 		    
@@ -117,6 +120,7 @@ typelist:
 | c=typecase                           { c::[] }
 
 typecase:
+| c = CONSTRUCT {TType(c,EmptyType)}
 | c = CONSTRUCT OF t=typeproduct { 
     match t with
     |[]->failwith "erreur impossible"
@@ -133,11 +137,13 @@ exprseq:
 
 
 value:
-| i=INT                              { Cst i} 
+| i=INT                             { Cst i} 
 | b=BOOL                            { Bool b }
 | v=VAR                             { Var v }
 | LPAREN RPAREN                     { Unit }
 | LBRACKET RBRACKET                 { List([])}
+| c=CONSTRUCT                       { TypeUse(c) }
+(*TODO : JETER LES CONSTRUCTEURS EN PARAMETRE DES FONCTIONS*)
 
 
 
@@ -173,6 +179,7 @@ smotif :
 
 motif:
 |v = VAR                      {MVar(v)}
+|c = CONSTRUCT                 {MCustom(c,MUplet([]))}
 |c = CONSTRUCT m=smotif        {MCustom(c,m)}
 |m = motifupletexpr COMMA u=muplets   {mupletlist m u}
 |LPAREN m=motif RPAREN   { m }
@@ -221,9 +228,8 @@ internalexpression:
 | REF e=internalexpression                              { Ref e }
 | PRINT e=internalexpression                    { PrInt e } 
 
-| c=CONSTRUCT e=sexpr                           { TypeUse(c,e) }
-
-
+(*| c=CONSTRUCT e=internalexpression                      { TypeUse(c,e) }
+*)
 expression:
 (*| e=sexpr                               { e }*) (*on fait expression -> sexpr via e -> internalexpression -> applic -> sexpr*)
 
@@ -266,6 +272,7 @@ expression:
 | TRY e = exprseq WITH CASE LPAREN EXCEPT m = motif RPAREN RIGHTARROW en=exprseq {TryWith(e,m,en)}
 | TRY e = exprseq WITH LPAREN EXCEPT m = motif RPAREN RIGHTARROW en=exprseq {TryWith(e,m,en)}
 
+(*retravailler pour utiliser les type*)
 | RAISE LPAREN EXCEPT e = sexpr RPAREN                                                  {Raise(e)}
 
 | e=internalexpression QUATROSPUNTOS l=listexpr { listaux e l }

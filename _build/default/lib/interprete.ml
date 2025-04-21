@@ -14,20 +14,24 @@ let cast_fun (v : valeur) : (cont*cont) -> valeur -> valeur = match v with
 |_ -> raise (NotAFunction v)
 
 
-let rec cast_type (tctx : (string, string list) Hashtbl.t) (cctx : (string, supportedtype) Hashtbl.t) (s : string) (v : valeur) : valeur =
+let rec cast_type (tctx : (string, string list) Hashtbl.t) (cctx : (string, supportedtype) Hashtbl.t) (s : string) (k,_ : cont*cont) (v : valeur) : valeur =
   let t = Hashtbl.find cctx s in 
   match t with
+  |EmptyType -> if v = VUplet([]) then VCustom(s,VUplet([])) else failwith "erreur avec un constructeur vide"
   |Int -> (match v with
-    |VI k -> VCustom(s,VI k)
+    |VI i -> k (VCustom(s,VI i))
     |_ -> raise (NotAnInt v))
   |Boolean -> (match v with
-    |VB b -> VCustom(s,VB b)
+    |VB b -> k (VCustom(s,VB b))
     |_ -> raise (NotABool v))
+  |Unit -> (match v with
+    |VUnit -> k (VCustom(s,VUnit))
+    |_ -> raise (CastError "Not a unit"))
   |CustomType(name) -> 
-    let undertypes = Hashtbl.find tctx name in VCustom(s,find_undertype undertypes v)
+    let undertypes = Hashtbl.find tctx name in k (VCustom(s,find_undertype undertypes v))
   |ProductType(comp) -> 
     (match v with
-    |VUplet(l) -> if matching_type_uplet tctx comp l then VCustom(s, v) else failwith "le type produit ne convient pas"
+    |VUplet(l) -> if matching_type_uplet tctx comp l then k(VCustom(s, v)) else failwith "le type produit ne convient pas"
     |_-> failwith "la valeur n'est pas un uplet, donc pas compatible avec un type produit")
     
 
@@ -38,6 +42,7 @@ and matching_type_uplet (tctx : (string, string list) Hashtbl.t) (types : suppor
 and matching_type (tctx : (string, string list) Hashtbl.t) (t : supportedtype) (v : valeur) : bool = match (t,v) with
 |(Int,VI _) -> true
 |(Boolean, VB _) -> true
+|(Unit, VUnit) -> true
 |(CustomType(s1), VCustom(s2,_)) -> List.exists (fun s -> s = s2) (Hashtbl.find tctx s1)
 |(ProductType(comp), VUplet(l)) -> matching_type_uplet tctx comp l
 |_->false
@@ -95,7 +100,7 @@ let eval (e : expr) : valeur =
   let globalctx : env = Hashtbl.create 20 in
   let typectx : (string, string list) Hashtbl.t = Hashtbl.create 20 in
   let constrctx : (string, supportedtype) Hashtbl.t = Hashtbl.create 20 in
-  let caster : string -> valeur -> valeur = cast_type typectx constrctx in
+  let caster : string -> (cont*cont) -> valeur -> valeur = cast_type typectx constrctx in
   let basectx : env = Hashtbl.create 20 in
   let deep = ref false in
   let refnumerotation = ref 0 in
@@ -175,7 +180,8 @@ let eval (e : expr) : valeur =
 
     | Uplet(elist) -> 
       let rec eval_uplet (elist : expr list) (vlist : valeur list)= ( match elist with
-      |[] -> failwith "les uplets vides n'existent pas"
+      |[] -> (*failwith "les uplets vides n'existent pas" -> si maintenant*)
+        k (VUplet([]))
       |p::[] -> eval_aux ctx p ((fun v -> k (VUplet((*List.rev*) (v::vlist)))),kE)
       |p::q -> eval_aux ctx p ((fun v -> eval_uplet q (v::vlist)),kE)
       )
@@ -232,7 +238,8 @@ let eval (e : expr) : valeur =
     Hashtbl.add typectx typename constrlist;
     eval_aux ctx e ((fun v -> k v), kE)
   
-    | TypeUse(typename, assignation) -> eval_aux ctx assignation ((fun v -> k (caster typename v)),kE)
+    | TypeUse(typename) -> 
+      k (VFun(caster typename))
 
   end
     
@@ -284,7 +291,7 @@ let eval (e : expr) : valeur =
   |MCons(m, l) -> (match v with
       |VList(p::q) -> canabsorbMotif m p && canabsorbMotif l (VList q)
       |_ -> false)
-  |MCustom(name,mo) -> 
+  |MCustom(name,mo) ->
     (match v with
       |VCustom(name2, l) -> if name = name2 then canabsorbMotif mo l else false
       |_ -> false) 

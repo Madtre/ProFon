@@ -10,8 +10,10 @@ let warning (mess : string) = if !debug_mode then (print_string "Warning : "; pr
 type supportedtype =
 | Int
 | Boolean
+| Unit
 | CustomType of string
 | ProductType of supportedtype list
+| EmptyType
 (*
 | List of supportedtype list
 *)
@@ -61,7 +63,7 @@ type expr =
 | TryWith of expr * motif * expr
 | Raise of expr
 | TypeDef of customtype*expr
-| TypeUse of string*expr
+| TypeUse of string
 
 
 (* les valeurs ; pour l'instant �a ne peut �tre que des entiers *)
