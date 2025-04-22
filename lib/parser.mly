@@ -56,7 +56,6 @@ let parsetype (typestring : string) : supportedtype = match typestring with
 %token REF BANG ASSIGN
 %token SEPARATOR DOUBLESEPARATOR
 %token COMMA
-%token FOR WHILE TO DO DONE
 %token QUATROSPUNTOS LBRACKET RBRACKET
 %token MATCH WITH CASE
 %token LEQ LT GEQ GT DIFF
@@ -89,7 +88,6 @@ let parsetype (typestring : string) : supportedtype = match typestring with
 %left PLUS MINUS AND OR   
 %left MOINSUNAIRE
 %left TIMES DIV NOT
-%left CONSTRUCT
 %left DOUBLESEPARATOR
 %left PRINT
 %right SEPARATOR
@@ -106,11 +104,17 @@ let parsetype (typestring : string) : supportedtype = match typestring with
 %%
 
 main:                       /* <- le point d'entrée (cf. + haut, "start") */
-|TYPE t=typedef DOUBLESEPARATOR m=main { TypeDef(t,m) }
-|EOF              { Unit }
+                                                (*Permet d'empiler les TypeDef + on reverse l'ordre de la liste pour que les types soit lus dans l'ordre où ils sont écrits*)
+|TYPE t=types DOUBLESEPARATOR e=expression EOF  { List.fold_left (fun acc b -> TypeDef(b, acc)) e (List.rev t) }
+|TYPE t=types DOUBLESEPARATOR EOF  { List.fold_left (fun acc b -> TypeDef(b, acc)) Unit t }
+|TYPE t=types EOF  { List.fold_left (fun acc b -> TypeDef(b, acc)) Unit t }
 |e=expression EOF { e }  
-  
-      
+
+types:
+| t=typedef { t::[] }
+| m=types TYPE t=typedef { t::m }
+| m=types DOUBLESEPARATOR TYPE t=typedef { t::m }
+
 typedef:
 | name=VAR EQUAL l=typelist            { (name, l) }
 | name=VAR EQUAL CASE l=typelist            { (name, l) }
@@ -142,13 +146,13 @@ value:
 | v=VAR                             { Var v }
 | LPAREN RPAREN                     { Unit }
 | LBRACKET RBRACKET                 { List([])}
-| c=CONSTRUCT                       { TypeUse(c) }
+| c=CONSTRUCT                       { TypeUse(c,Uplet[]) }
 (*TODO : JETER LES CONSTRUCTEURS EN PARAMETRE DES FONCTIONS*)
 
 
 
 applic:
-| a=applic s=sexpr { FunCall(a, s) } (*cas où on réduit le dernier paramètre*)
+| a=applic s=sexpr { match a with |TypeUse(c,Uplet([])) -> TypeUse(c,s) |_ -> FunCall(a, s) } (*cas où on réduit le dernier paramètre*)
 | e=sexpr        { e } (*cas de base, il nous reste plus que le nom de la première fonction*)
 
 
@@ -169,7 +173,7 @@ muplets:
 | m=motifupletexpr            {MUplet([m])}
 
 motifupletexpr:
-|m = smotif QUATROSPUNTOS l=smotif  {MCons(m,l)}
+|m = smotif QUATROSPUNTOS l=motifupletexpr  {MCons(m,l)}
 |m = smotif { m }
 
 smotif :
@@ -182,8 +186,8 @@ motif:
 |c = CONSTRUCT                 {MCustom(c,MUplet([]))}
 |c = CONSTRUCT m=smotif        {MCustom(c,m)}
 |m = motifupletexpr COMMA u=muplets   {mupletlist m u}
+|m = smotif QUATROSPUNTOS l=motifupletexpr {MCons(m,l)}
 |LPAREN m=motif RPAREN   { m }
-|m = smotif QUATROSPUNTOS l=smotif {MCons(m,l)}
 |LBRACKET RBRACKET {MNil}
 
 uplets:
@@ -252,11 +256,6 @@ expression:
 | a=applic ASSIGN e=expression             { Assign(a, e) }
 
 | e=internalexpression COMMA u=uplets   { upletaux e u }
-
-| FOR v=VAR EQUAL val1 = value TO val2=value DO e = expression DONE { For(Var v, val1, val2, e) }
-
-
-| WHILE b = expression DO e = expression DONE                                   { While(b,e)}
 
 
 | MATCH e = expression WITH m = cases                       { match m with | MatchWith(_, l) -> MatchWith(e,l) | _ -> failwith "comportement innatendu de la grammaire lors du parsing d'un match" }

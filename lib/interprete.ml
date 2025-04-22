@@ -98,9 +98,10 @@ let eval (e : expr) : valeur =
   print_newline());
   (*ctx représente le contexte général d'éxécution, en opposition au contexte de chaque fonction*)
   let globalctx : env = Hashtbl.create 20 in
-  let typectx : (string, string list) Hashtbl.t = Hashtbl.create 20 in
+  (*let typectx : (string, string list) Hashtbl.t = Hashtbl.create 20 in
   let constrctx : (string, supportedtype) Hashtbl.t = Hashtbl.create 20 in
   let caster : string -> (cont*cont) -> valeur -> valeur = cast_type typectx constrctx in
+  *)
   let basectx : env = Hashtbl.create 20 in
   let deep = ref false in
   let refnumerotation = ref 0 in
@@ -187,9 +188,6 @@ let eval (e : expr) : valeur =
       )
     in eval_uplet (List.rev elist) []
 
-    | For(_) -> k VUnit
-    | While(_) -> k VUnit
-
     | List(l) -> 
       let eval_list (exprlist : expr list) : valeur = 
         let rec list_aux (elist : expr list) (vlist : valeur list) : valeur =
@@ -230,16 +228,9 @@ let eval (e : expr) : valeur =
 
     |Raise e -> eval_aux ctx e ((fun v -> kE v), (fun _ -> failwith "not implemented yet") (*probablement kE ici*))
 
-    | TypeDef((typename, definitions), e) -> 
-    
-    let constrlist = List.fold_left (fun accu elem -> match elem with
-      |TType(name, def) -> Hashtbl.add constrctx name def ; name::accu) [] definitions in
-
-    Hashtbl.add typectx typename constrlist;
-    eval_aux ctx e ((fun v -> k v), kE)
-  
-    | TypeUse(typename) -> 
-      k (VFun(caster typename))
+    |TypeDef((_,_), e) -> eval_aux ctx e ((fun v -> k v), kE)
+    |TypeUse(typename, e) -> 
+      eval_aux ctx e ((fun v -> k (VCustom(typename, v))), kE) 
 
   end
     
@@ -268,8 +259,7 @@ let eval (e : expr) : valeur =
       |VCustom(name2, l) -> if name = name2 then absorbMotif ctx mot l
       |_ -> failwith "Erreur d'absorbtion plutôt regrettable concernant des types customs"
     )
-
-
+  
   and unabsorbMotif (ctx : env) (mo : motif) : unit = match mo with
     |MVar va -> Hashtbl.remove ctx va
     |MUplet(l1) -> 

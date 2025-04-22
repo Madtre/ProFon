@@ -56,14 +56,12 @@ type expr =
 | Access of expr
 | Assign of expr*expr
 | Uplet of expr list
-| For of expr*expr*expr*expr
-| While of expr*expr
 | List of expr list
 | MatchWith of expr * ((motif * expr) list)
 | TryWith of expr * motif * expr
 | Raise of expr
 | TypeDef of customtype*expr
-| TypeUse of string
+| TypeUse of string*expr
 
 
 (* les valeurs ; pour l'instant �a ne peut �tre que des entiers *)

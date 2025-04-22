@@ -52,15 +52,13 @@ let prInt x = if not !src_mode then (print_int x;print_newline()); x;;
     | Access e -> aff_aux "Access(" [e] string_of_expr ^ ")"
     | Assign(e1,e2) -> aff_aux "Assign(" [e1;e2] string_of_expr ^ ")"
     | Uplet(e) -> aff_aux "Uplet(" e string_of_expr ^ ")"
-    | For(e1, e2, e3, e4) -> aff_aux "For(" [e1;e2;e3;e4] string_of_expr ^ ")"
-    | While(b, e) -> aff_aux "While(" [b;e] string_of_expr ^ ")"
     | List [] -> "List([])"
     | List l -> aff_aux "List(" l string_of_expr ^ ")"
     | MatchWith(e, l) -> "MatchWith(" ^ (string_of_expr e) ^ (aff_aux "" l (fun (m, e) -> (string_of_motif m) ^ " -> " ^ (string_of_expr e))) ^ ")"
     | TryWith(e1,m,e2) -> "TryWith(" ^ string_of_expr e1 ^ "," ^string_of_motif m ^ "," ^ string_of_expr e2 ^ ")"
     | Raise(e) -> aff_aux "Raise(" [e] string_of_expr
     | TypeDef(_,e) -> "TypeDef(" ^ "," ^ string_of_expr e ^ ")"
-    | TypeUse(s) -> "TypeUse(" ^s ^ ")"
+    | TypeUse(s,e) -> "TypeUse(" ^s ^ "," ^ string_of_expr e ^ ")"
 
 let affiche_expr e = print_string (string_of_expr e)
 
@@ -102,8 +100,6 @@ match e with
 | Access(e) -> code_aux [E e] ["!("] false ^ ")"
 | Assign(e1,e2)-> code_aux [E e1 ; E e2] ["";" := "] true
 | Uplet(l) -> code_aux (List.map (fun e -> E e) l) (List.init (List.length l) (fun i -> if i = 0 then "" else ",")) true
-| For(e1,e2,e3,e4)-> "(" ^ code_aux [E e1;E e2;E e3;E e4] ["for " ; " = " ; " to " ; " do \n"] false ^ "\n done)"
-| While(e1,e2)-> "(" ^ code_aux [E e1 ; E e2] ["while " ; " do\n"] false ^ "\n done)"
 | List([]) -> "[]"
 | List(s) -> 
   let rec aux l = match l with

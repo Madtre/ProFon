@@ -3,11 +3,9 @@
 
 type token = 
   | WITH
-  | WHILE
   | VAR of (string)
   | TYPE
   | TRY
-  | TO
   | TIMES
   | THEN
   | SEPARATOR
@@ -37,15 +35,12 @@ type token =
   | GEQ
   | FUNCTION
   | FUN
-  | FOR
   | EXCEPT
   | EQUAL
   | EOF
   | END
   | ELSE
   | DOUBLESEPARATOR
-  | DONE
-  | DO
   | DIV
   | DIFF
   | CONSTRUCT of (string)

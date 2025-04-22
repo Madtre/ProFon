@@ -1,10 +1,8 @@
 type token =
     WITH
-  | WHILE
   | VAR of string
   | TYPE
   | TRY
-  | TO
   | TIMES
   | THEN
   | SEPARATOR
@@ -34,15 +32,12 @@ type token =
   | GEQ
   | FUNCTION
   | FUN
-  | FOR
   | EXCEPT
   | EQUAL
   | EOF
   | END
   | ELSE
   | DOUBLESEPARATOR
-  | DONE
-  | DO
   | DIV
   | DIFF
   | CONSTRUCT of string
@@ -63,6 +58,7 @@ val parsetype : string -> Expr.supportedtype
 val menhir_begin_marker : int
 val xv_value : Expr.expr
 val xv_uplets : Expr.expr
+val xv_types : Expr.customtype list
 val xv_typeproduct : Expr.supportedtype list
 val xv_typelist : Expr.typedef list
 val xv_typedef : Expr.customtype

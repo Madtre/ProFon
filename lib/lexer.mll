@@ -49,11 +49,6 @@ rule token = parse    (* la "fonction" aussi s'appelle token .. *)
   | ";"             { SEPARATOR }
   | ";;"            { DOUBLESEPARATOR }
   | ","             { COMMA }
-  | "for"           { FOR }
-  | "while"         { WHILE }
-  | "to"            { TO }
-  | "do"            { DO }
-  | "done"          { DONE }
   | "["             { LBRACKET }
   | "]"             { RBRACKET }
   | "::"            { QUATROSPUNTOS }
