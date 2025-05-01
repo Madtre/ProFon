@@ -1,2 +1,4 @@
 lib__Affichage
 lib__Expr
+lib__Inference
+lib__Unification

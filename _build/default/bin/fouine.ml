@@ -9,7 +9,9 @@ let nom_fichier = ref ""
 let recupere_entree () =
   let optlist = [
     ("-debug", Arg.Set debug_mode, "Active le mode de debuggage" );
-    ("-show-src", Arg.Set src_mode, "Ecrit les operateurs en majuscules")
+    ("-showsrc", Arg.Set src_mode, "Ecrit les operateurs en majuscules");
+    ("-showtypes", Arg.Set type_mode, "Affiche les types dans l'environnement");
+    ("-notypes", Arg.Set noninf_mode, "Désactive l'inférence de type")
   ] in
 
   let usage = "Bienvenue a bord." in  (* message d'accueil, option -help *)

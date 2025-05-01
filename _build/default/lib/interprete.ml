@@ -1,5 +1,7 @@
 open Expr
 open Affichage
+open Inference
+open Unification
 
 let cast_int (v : valeur) : int = match v with
   |VI k -> k
@@ -96,19 +98,26 @@ let eval (e : expr) : valeur =
   if !Expr.src_mode then (
   affiche_code e; (* on n'affiche plus que le code de e *)
   print_newline());
-  (*ctx représente le contexte général d'éxécution, en opposition au contexte de chaque fonction*)
+  if not !Expr.noninf_mode then
+    (let assoc,contraintes = infer e in
+    if !debug_mode then 
+      print_assoc assoc;
+      print_string "---";
+      print_newline();
+      print_contraintes contraintes;
+    try
+      unif contraintes
+    with 
+    |UnificationError _ -> failwith "Unification error : types not compatible"
+  );
   let globalctx : env = Hashtbl.create 20 in
-  (*let typectx : (string, string list) Hashtbl.t = Hashtbl.create 20 in
-  let constrctx : (string, supportedtype) Hashtbl.t = Hashtbl.create 20 in
-  let caster : string -> (cont*cont) -> valeur -> valeur = cast_type typectx constrctx in
-  *)
   let basectx : env = Hashtbl.create 20 in
   let deep = ref false in
   let refnumerotation = ref 0 in
   let rec eval_aux (ctx : env) (e : expr) ((k,kE) : cont*cont): valeur = 
-    if !debug_mode 
+    if !debug_mode && false
       then (print_string "current expr : " ; affiche_expr e ; print_newline()); 
-    if !debug_mode 
+    if !debug_mode && false
     then
       (print_string "global ctx : " ; print_newline() ; affiche_env globalctx (fun s -> findVarValue s globalctx); 
       print_string "local ctx :" ; print_newline() ; affiche_env ctx (fun s -> findVarValue s globalctx) ; print_newline()) ;
@@ -188,25 +197,12 @@ let eval (e : expr) : valeur =
       )
     in eval_uplet (List.rev elist) []
 
-    | List(l) -> 
-      let eval_list (exprlist : expr list) : valeur = 
-        let rec list_aux (elist : expr list) (vlist : valeur list) : valeur =
-        (match elist with
-        |[] -> k (VList [])
-        |p::[] -> eval_aux ctx p ((fun v -> VList(v::vlist)),kE)
-        |p::q -> eval_aux ctx p ((fun v -> list_aux q (v::vlist)),kE)
-        )
-      in match exprlist with
-      (*Ici on gère le cas des listes qui ne sont pas terminés par un ::[] explicite*)
-      |[]->k (VList([]))
-      |p::q-> if p = List([]) then k (list_aux q []) (*Cas de liste dite explicite dans le readme*)
-      
-      else eval_aux ctx p ((fun v -> (*cas de liste dite implicite dans le readme*)
-        match v with
-        |VList(l) -> k(match (list_aux q []) with |VList(l2) -> VList(l2@l) |_->failwith "erreur innatendue")
-        |_->failwith "liste impropre"
-        ),kE)
-      in eval_list (List.rev l)
+    | Nil -> k (VList([]))
+
+    | Cons(e1, e2) -> 
+      eval_aux ctx e2 ((fun v2 -> eval_aux ctx e1 ((fun v1 -> match v2 with
+        |VList(l) -> k (VList(v1::l))
+        |_ -> failwith "Erreur de type : on attendait une liste"),kE)),kE)
 
     | MatchWith(e, l) -> 
       eval_aux ctx e ((fun v ->

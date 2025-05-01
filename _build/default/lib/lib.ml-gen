@@ -6,6 +6,9 @@ module Affichage = Lib__Affichage
 (** @canonical Lib.Expr *)
 module Expr = Lib__Expr
 
+(** @canonical Lib.Inference *)
+module Inference = Lib__Inference
+
 (** @canonical Lib.Interprete *)
 module Interprete = Lib__Interprete
 
@@ -14,3 +17,6 @@ module Lexer = Lib__Lexer
 
 (** @canonical Lib.Parser *)
 module Parser = Lib__Parser
+
+(** @canonical Lib.Unification *)
+module Unification = Lib__Unification

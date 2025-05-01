@@ -14,10 +14,6 @@ let upletaux (e : expr) (u : expr) : expr = match u with
 |Uplet(l) -> Uplet(e::l)
 |_-> failwith "comportement innatendu de la grammaire lors du parsing d'un uplet"
 
-let listaux (e : expr) (u : expr) : expr = match u with
-|List(l) -> List(e::l)
-|_-> failwith "comportement innatendu de la grammaire lors du parsing d'une liste"
-
 let mupletlist (e : motif) (u : motif) : motif = match u with
 |MUplet(l) -> MUplet(e::l)
 |MCons(a,l)->MCons(e,MCons(a,l))
@@ -145,7 +141,7 @@ value:
 | b=BOOL                            { Bool b }
 | v=VAR                             { Var v }
 | LPAREN RPAREN                     { Unit }
-| LBRACKET RBRACKET                 { List([])}
+| LBRACKET RBRACKET                 { Nil}
 | c=CONSTRUCT                       { TypeUse(c,Uplet[]) }
 | EXCEPT e = sexpr                  { Exception(e) }
 (*TODO : JETER LES CONSTRUCTEURS EN PARAMETRE DES FONCTIONS*)
@@ -200,12 +196,12 @@ sexprlistb: (*j'ajoute ici un cas particulier pour une expression de la forme [2
 | e=internalexpression COMMA u=uplets    { upletaux e u }
 
 listexpr:
-| e = internalexpression QUATROSPUNTOS l = listexpr { listaux e l }
-| e = internalexpression                   { List([e]) }
+| e = internalexpression QUATROSPUNTOS l = listexpr { Cons(e, l) }
+| e = internalexpression                   { Cons(e,Nil) }
 
 listexprbracket:
-| e = sexprlistb SEPARATOR l = listexprbracket { listaux e l }
-| e = sexprlistb RBRACKET               { List(e::(List [])::[])}
+| e = sexprlistb SEPARATOR l = listexprbracket { Cons(e, l)}
+| e = sexprlistb RBRACKET               { Cons(e, Nil) }
 
 cases :
 | m = motif RIGHTARROW e = exprseq CASE c = cases    { matchwithconstr (m,e) c }
@@ -274,7 +270,7 @@ expression:
 | TRY e = exprseq WITH CASE LPAREN EXCEPT m = motif RPAREN RIGHTARROW en=exprseq {TryWith(e,m,en)}
 | TRY e = exprseq WITH LPAREN EXCEPT m = motif RPAREN RIGHTARROW en=exprseq {TryWith(e,m,en)}
 
-| e=internalexpression QUATROSPUNTOS l=listexpr { listaux e l }
+| e=internalexpression QUATROSPUNTOS l=listexpr { Cons(e,l) }
 
 | i=internalexpression { i }
 

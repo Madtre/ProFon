@@ -2,6 +2,10 @@ let debug_mode = ref false
 
 let src_mode = ref false
 
+let noninf_mode = ref false
+
+let type_mode = ref false
+
 
 
 (*A defaut de mieux pour l'instant, on log les warnings avec un print*)
@@ -56,7 +60,8 @@ type expr =
 | Access of expr
 | Assign of expr*expr
 | Uplet of expr list
-| List of expr list
+| Nil
+| Cons of expr*expr
 | MatchWith of expr * ((motif * expr) list)
 | TryWith of expr * motif * expr
 | Raise of expr

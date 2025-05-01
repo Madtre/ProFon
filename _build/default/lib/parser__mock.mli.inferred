@@ -50,7 +50,6 @@ type token =
   | AND
 val aux : Expr.expr -> Expr.expr -> Expr.expr
 val upletaux : Expr.expr -> Expr.expr -> Expr.expr
-val listaux : Expr.expr -> Expr.expr -> Expr.expr
 val mupletlist : Expr.motif -> Expr.motif -> Expr.motif
 val matchwithconstr : Expr.motif * Expr.expr -> Expr.expr -> Expr.expr
 val varanonyme : int ref

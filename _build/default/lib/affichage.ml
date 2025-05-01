@@ -1,4 +1,5 @@
 open Expr
+open Inference
 (* fonction d'affichage *)
 (* NB : dans votre "vraie fouine", il faudra afficher
    du code Caml, et pas des arbres avec des Add, Mul, etc. *)
@@ -52,8 +53,8 @@ let prInt x = if not !src_mode then (print_int x;print_newline()); x;;
     | Access e -> aff_aux "Access(" [e] string_of_expr ^ ")"
     | Assign(e1,e2) -> aff_aux "Assign(" [e1;e2] string_of_expr ^ ")"
     | Uplet(e) -> aff_aux "Uplet(" e string_of_expr ^ ")"
-    | List [] -> "List([])"
-    | List l -> aff_aux "List(" l string_of_expr ^ ")"
+    | Nil -> "[]"
+    | Cons(e1,e2) -> aff_aux "Cons(" [e1;e2] string_of_expr ^ ")"
     | MatchWith(e, l) -> "MatchWith(" ^ (string_of_expr e) ^ (aff_aux "" l (fun (m, e) -> (string_of_motif m) ^ " -> " ^ (string_of_expr e))) ^ ")"
     | TryWith(e1,m,e2) -> "TryWith(" ^ string_of_expr e1 ^ "," ^string_of_motif m ^ "," ^ string_of_expr e2 ^ ")"
     | Raise(e) -> aff_aux "Raise(" [e] string_of_expr
@@ -101,14 +102,8 @@ match e with
 | Access(e) -> code_aux [E e] ["!("] false ^ ")"
 | Assign(e1,e2)-> code_aux [E e1 ; E e2] ["";" := "] true
 | Uplet(l) -> code_aux (List.map (fun e -> E e) l) (List.init (List.length l) (fun i -> if i = 0 then "" else ",")) true
-| List([]) -> "[]"
-| List(s) -> 
-  let rec aux l = match l with
-  |[] -> failwith "code of expr innatendu"
-  |p::[] -> if p = List([]) then [] else p::[]
-  |p::q-> p::(aux q)
-  in let l = aux s in   
-  "(" ^ code_aux (List.map (fun e -> E e) l) (List.init (List.length l) (fun i -> if i = 0 then "" else "::")) true ^ "::[])"
+| Nil -> "[]"
+| Cons(e1,e2) -> code_aux [E e1; E e2] ["";"::"] true
 | MatchWith(e, l) -> "(match " ^ code_of_expr e ^ " with \n"^ code_aux (List.map (fun (a,b) -> (C(a,b))) l) (List.init (List.length l) (fun _ -> "")) false ^ ")"
 | TryWith(e1,m,e2) -> "(try " ^ code_of_expr e1 ^ " with |E " ^ code_of_motif m ^ " -> " ^code_of_expr e2 ^ ")"
 | Raise(e1) -> "(raise" ^code_of_expr(e1) ^ ")"
@@ -173,3 +168,26 @@ let rec cast_string (v : valeur) (refcontent : string->valeur) : string =
 let affiche_env (ctx : env) (refcontent : string->valeur) : unit = Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n" x (cast_string y refcontent)) ctx;;
 
 let affiche_valeur (v : valeur) (refcontent : string->valeur) = print_string (cast_string v refcontent)
+
+let string_of_types (t : types) : string = 
+  let rec aux (t : types) : string =
+    match t with
+    | Anon n -> "T" ^ string_of_int n
+    | TInt -> "int"
+    | TBool -> "bool"
+    | TArrow (t1, t2) -> Printf.sprintf "(%s -> %s)" (aux t1) (aux t2)
+  in
+  aux t 
+
+let print_contraintes (contr : (types * types) list) =
+  let rec aux (c : (types * types) list) : unit =
+    match c with
+    | [] -> ()
+    | (t1, t2) :: q ->
+      Printf.printf "%s - %s\n" (string_of_types t1) (string_of_types t2);
+      aux q
+  in
+  aux contr
+
+let print_assoc (assoc : (string, types) Hashtbl.t) =
+  Hashtbl.iter (fun x y -> Printf.printf "%s -> %s\n" x (string_of_types y)) assoc;;

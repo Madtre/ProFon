@@ -1,1 +1,1 @@
-lib/affichage.ml: Expr Hashtbl List Printf String
+lib/affichage.ml: Expr Hashtbl Inference List Printf String
