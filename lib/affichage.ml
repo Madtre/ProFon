@@ -59,6 +59,7 @@ let prInt x = if not !src_mode then (print_int x;print_newline()); x;;
     | Raise(e) -> aff_aux "Raise(" [e] string_of_expr
     | TypeDef(_,e) -> "TypeDef(" ^ "," ^ string_of_expr e ^ ")"
     | TypeUse(s,e) -> "TypeUse(" ^s ^ "," ^ string_of_expr e ^ ")"
+    | Exception(s) -> "Exception(" ^ string_of_expr s ^ ")"
 
 let affiche_expr e = print_string (string_of_expr e)
 
@@ -113,6 +114,7 @@ match e with
 | Raise(e1) -> "(raise" ^code_of_expr(e1) ^ ")"
 | TypeDef(_,_) -> "PAS IMPLEMENTE"
 | TypeUse(_) -> "PAS IMPLEMENTE"
+| Exception(_) -> "PAS IMPLEMENTE"
 and code_aux (e : form list) (s: string list) (parenthesis : bool)= (if parenthesis then "(" else "") ^ (match (e,s) with
 |([],[])->""
 |(f::q1, p2::q2) -> 
@@ -135,6 +137,7 @@ let rec cast_string (v : valeur) (refcontent : string->valeur) : string =
     |VB b -> string_of_bool b
     |VUnit -> "()"
     |VFun _ -> "<fun>"
+    |VException k -> getcontent k refcontent
     |VRef r -> "{contents = " ^ cast_string (refcontent r) refcontent ^ "}"
     |VUplet l -> let (_, upletv) = (uplethelper l ",") in "(" ^ upletv ^ ")"
     |VList [] -> "[]"
@@ -158,6 +161,7 @@ let rec cast_string (v : valeur) (refcontent : string->valeur) : string =
   |VUnit -> "- : unit"
   |VFun _ -> "- : function"
   |VRef _ -> "- : valeur ref = " ^ (getcontent v refcontent)
+  |VException k -> "- : exn = " ^ getcontent k refcontent
   |VUplet l -> let (uplett, upletv) = uplethelper l "," in
     "- : " ^ uplett ^ " = (" ^ upletv ^ ")"
   |VList [] -> "- : valeur list = []"

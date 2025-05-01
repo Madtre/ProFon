@@ -226,11 +226,16 @@ let eval (e : expr) : valeur =
       |_-> failwith "une exception ne peut prendre qu'un int"
       ))
 
-    |Raise e -> eval_aux ctx e ((fun v -> kE v), (fun _ -> failwith "not implemented yet") (*probablement kE ici*))
+    |Raise e -> eval_aux ctx e ((fun v -> match v with
+                                          |VException(k) -> kE k
+                                          |_-> failwith "tente de raise qqchose qui n'est pas une exception")
+                                , (fun _ -> failwith "not implemented yet") (*probablement kE ici*))
 
     |TypeDef((_,_), e) -> eval_aux ctx e ((fun v -> k v), kE)
     |TypeUse(typename, e) -> 
       eval_aux ctx e ((fun v -> k (VCustom(typename, v))), kE) 
+
+    |Exception(e) -> eval_aux ctx e ((fun v -> k (VException v)), kE)
 
   end
     

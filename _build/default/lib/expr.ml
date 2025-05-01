@@ -62,7 +62,7 @@ type expr =
 | Raise of expr
 | TypeDef of customtype*expr
 | TypeUse of string*expr
-
+| Exception of expr
 
 (* les valeurs ; pour l'instant �a ne peut �tre que des entiers *)
 
@@ -74,6 +74,7 @@ type valeur =
 |VRef of string
 |VUplet of valeur list
 |VList of valeur list
+|VException of valeur
 |VCustom of string*valeur
 and
 cont = valeur -> valeur (*continuation*)

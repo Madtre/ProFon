@@ -147,6 +147,7 @@ value:
 | LPAREN RPAREN                     { Unit }
 | LBRACKET RBRACKET                 { List([])}
 | c=CONSTRUCT                       { TypeUse(c,Uplet[]) }
+| EXCEPT e = sexpr                  { Exception(e) }
 (*TODO : JETER LES CONSTRUCTEURS EN PARAMETRE DES FONCTIONS*)
 
 
@@ -232,8 +233,10 @@ internalexpression:
 | REF e=internalexpression                              { Ref e }
 | PRINT e=internalexpression                    { PrInt e } 
 
-(*| c=CONSTRUCT e=internalexpression                      { TypeUse(c,e) }
-*)
+(*retravailler pour utiliser les type*)
+| RAISE LPAREN e=expression RPAREN                                                  {Raise(e)}
+
+
 expression:
 (*| e=sexpr                               { e }*) (*on fait expression -> sexpr via e -> internalexpression -> applic -> sexpr*)
 
@@ -270,9 +273,6 @@ expression:
 
 | TRY e = exprseq WITH CASE LPAREN EXCEPT m = motif RPAREN RIGHTARROW en=exprseq {TryWith(e,m,en)}
 | TRY e = exprseq WITH LPAREN EXCEPT m = motif RPAREN RIGHTARROW en=exprseq {TryWith(e,m,en)}
-
-(*retravailler pour utiliser les type*)
-| RAISE LPAREN EXCEPT e = sexpr RPAREN                                                  {Raise(e)}
 
 | e=internalexpression QUATROSPUNTOS l=listexpr { listaux e l }
 
