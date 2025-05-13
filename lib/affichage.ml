@@ -172,7 +172,7 @@ let affiche_valeur (v : valeur) (refcontent : string->valeur) = print_string (ca
 let string_of_types (t : types) : string = 
   let rec aux (t : types) : string =
     match t with
-    | Anon n -> "T" ^ string_of_int n
+    | TAnon n -> "T" ^ string_of_int n
     | TInt -> "int"
     | TBool -> "bool"
     | TArrow (t1, t2) -> Printf.sprintf "(%s -> %s)" (aux t1) (aux t2)

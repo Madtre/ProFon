@@ -1,7 +1,7 @@
 open Expr
 
 type types =
-| Anon of int
+| TAnon of int
 | TInt
 | TBool
 | TArrow of types * types
@@ -32,11 +32,11 @@ let rec recinfertypes (e : expr) (t : types) : unit =
   | And (e1, e2) -> typeslist := (t,TBool) :: !typeslist ; recinfertypes e1 TBool; recinfertypes e2 TBool
   | Or (e1, e2) -> typeslist := (t,TBool) :: !typeslist ; recinfertypes e1 TBool; recinfertypes e2 TBool
   | Not e -> typeslist := (t,TBool) :: !typeslist ; recinfertypes e TBool
-  | Equal (e1, e2) -> typeslist := (t,TBool) :: !typeslist ; let t2 = Anon !typenumber in typenumber := !typenumber + 1 ;
+  | Equal (e1, e2) -> typeslist := (t,TBool) :: !typeslist ; let t2 = TAnon !typenumber in typenumber := !typenumber + 1 ;
                       recinfertypes e1 t2; recinfertypes e2 t2
-  | Leq (e1, e2) -> typeslist := (t,TBool) :: !typeslist ; let t2 = Anon !typenumber in typenumber := !typenumber + 1 ;
+  | Leq (e1, e2) -> typeslist := (t,TBool) :: !typeslist ; let t2 = TAnon !typenumber in typenumber := !typenumber + 1 ;
                     recinfertypes e1 t2; recinfertypes e2 t2
-  | Lt (e1, e2) -> typeslist := (t,TBool) :: !typeslist ; let t2 = Anon !typenumber in typenumber := !typenumber + 1 ;
+  | Lt (e1, e2) -> typeslist := (t,TBool) :: !typeslist ; let t2 = TAnon !typenumber in typenumber := !typenumber + 1 ;
                   recinfertypes e1 t2; recinfertypes e2 t2
   | IfThenElse (e1, e2, e3) -> recinfertypes e1 TBool; recinfertypes e2 t; recinfertypes e3 t
   | PrInt e -> typeslist := (t,TInt) :: !typeslist ; recinfertypes e TInt
@@ -45,10 +45,10 @@ let rec recinfertypes (e : expr) (t : types) : unit =
                           (*Hashtbl.remove varassoc s*)
   (*| LetRecIn (m, e1, e2, _) -> let _,t2 = (infermotif m) in typesassoc := (code_of_motif m, t2):: !typesassoc ; recinfertypes e1 t2 ; recinfertypes e2 t*)
   | LetRecIn (_) -> failwith "Not implemented" 
-  | Fun (m, e) -> let t2 = Anon !typenumber in typenumber := !typenumber + 1 ; 
+  | Fun (m, e) -> let t2 = TAnon !typenumber in typenumber := !typenumber + 1 ; 
                   let x,y = infermotif m in (Hashtbl.add varassoc x y) ; typeslist := (t, TArrow (y, t2)) :: !typeslist ;
                   recinfertypes e t2 ; Hashtbl.remove varassoc x
-  | FunCall (e1, e2) -> let t2 = Anon !typenumber in typenumber := !typenumber + 1 ; recinfertypes e1 (TArrow(t2, t));
+  | FunCall (e1, e2) -> let t2 = TAnon !typenumber in typenumber := !typenumber + 1 ; recinfertypes e1 (TArrow(t2, t));
                         recinfertypes e2 t 
   | Ref _ -> failwith "Not implemented" 
   | Access _ -> failwith "Not implemented"
@@ -65,11 +65,11 @@ let rec recinfertypes (e : expr) (t : types) : unit =
 
 and infermotif (m : motif) : string * types =
   match m with
-  | MVar v -> let t2 = Anon !typenumber in typenumber := !typenumber + 1 ; (v,t2)
+  | MVar v -> let t2 = TAnon !typenumber in typenumber := !typenumber + 1 ; (v,t2)
   |_-> failwith "Not implemented"
   (*| MUplet l -> typeslist := (t,t) :: !typeslist ; List.iter (fun m -> infermotif m t) l
   | MNil -> ()
   | MCons (m1, m2) -> typeslist := (t,t) :: !typeslist ; infermotif m1 t; infermotif m2 t
   | MCustom (s, m) -> typeslist := (t,t) :: !typeslist ; infermotif m t*)
 
-in recinfertypes e (Anon 0) ; (varassoc,!typeslist)
+in Hashtbl.add varassoc "Expression finale" (TAnon(0)) ; recinfertypes e (TAnon 0) ; (varassoc,!typeslist)

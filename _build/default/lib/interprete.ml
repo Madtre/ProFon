@@ -98,18 +98,24 @@ let eval (e : expr) : valeur =
   if !Expr.src_mode then (
   affiche_code e; (* on n'affiche plus que le code de e *)
   print_newline());
-  if not !Expr.noninf_mode then
-    (let assoc,contraintes = infer e in
-    if !debug_mode then 
-      print_assoc assoc;
+  begin
+  if not !Expr.noninf_mode then 
+    let assoc,contraintes = infer e in
+    (if !debug_mode then 
+      (print_assoc assoc;
       print_string "---";
       print_newline();
-      print_contraintes contraintes;
-    try
-      unif contraintes
-    with 
-    |UnificationError _ -> failwith "Unification error : types not compatible"
-  );
+      print_contraintes contraintes));
+    let l = unif contraintes in
+    if !debug_mode then
+      (print_string "Unification result : " ; print_newline() ; print_contraintes l) ;
+    (Hashtbl.iter (fun s t -> 
+      let t' = findtype l t in
+      Hashtbl.replace assoc s t'
+    ) assoc); 
+    (if !debug_mode then
+      print_string "&&&" ; print_newline(); print_assoc assoc)
+  end;
   let globalctx : env = Hashtbl.create 20 in
   let basectx : env = Hashtbl.create 20 in
   let deep = ref false in
