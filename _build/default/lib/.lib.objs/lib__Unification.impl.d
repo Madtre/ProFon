@@ -1,1 +1,1 @@
-lib/unification.ml: Affichage Inference
+lib/unification.ml: Affichage Inference List

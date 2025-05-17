@@ -8,6 +8,7 @@ let rec substitute (v : int) (t : types) (l : (types * types) list) : (types * t
     match p with
     | TAnon v' -> if v = v' then t else p
     | TArrow (t1, t2) -> TArrow((substitutetype v t t1),(substitutetype v t t2))
+    | TProduct(l) -> TProduct(List.map (fun x -> substitutetype v t x) l)
     | _ -> p
   in match l with
   | [] -> []
@@ -43,7 +44,13 @@ let unif (l : (types * types) list) : (types * types) list =
       if not (insubstitution v !rempl) then (rempl := (t2, t1)::(substitute v t1 (!rempl)); substitute v t1 l) else l
     |(TArrow (t11, t12), TArrow (t21, t22)) -> 
       (t11, t21)::(t12,t22)::l
+    |(TProduct(l1),TProduct(l2))-> unif_uplet l1 l2 l
     |_ -> raise (UnificationError ("Incompatible type : " ^ (string_of_types t1) ^ " and " ^ (string_of_types t2)))
+
+  and unif_uplet (l1 : types list) (l2 : types list) (l : (types * types) list) : (types * types) list = match (l1,l2) with
+  |([],[]) -> l
+  |(p1::q1,p2::q2)-> (p1,p2)::(unif_uplet q1 q2 l)
+  |_ -> raise (UnificationError "Product Error")
   and unif_call (l : (types * types) list) : unit = 
     match l with
     | [] -> ()

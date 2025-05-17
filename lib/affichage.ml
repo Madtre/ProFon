@@ -175,7 +175,12 @@ let string_of_types (t : types) : string =
     | TAnon n -> "T" ^ string_of_int n
     | TInt -> "int"
     | TBool -> "bool"
-    | TArrow (t1, t2) -> Printf.sprintf "(%s -> %s)" (aux t1) (aux t2)
+    | TArrow (t1, t2) -> "(" ^ (aux t1) ^ "->" ^ (aux t2) ^ ")" 
+    | TList (t2) -> (aux t2) ^ " list"
+    | TProduct (p::q) -> (aux p) ^ (List.fold_left (fun accu a -> accu ^ " * " ^ (aux a)) "" q)
+    | TProduct ([]) -> failwith "impossible"
+    | TRef(t2) -> (aux t2) ^ " ref"
+    | TUnit -> "unit"
   in
   aux t 
 

@@ -1,1 +1,1 @@
-lib/inference.ml: Expr Hashtbl
+lib/inference.ml: Expr Hashtbl List

@@ -1,3 +1,8 @@
+
+(*Ajouter let () = unit et fun () -> ..*)
+
+
+
 let debug_mode = ref false
 
 let src_mode = ref false
